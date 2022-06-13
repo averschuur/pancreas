@@ -1,0 +1,60 @@
+.Rproj.user
+.Rhistory
+*.Rdata
+.Ruserdata
+*.Rproj
+*.png
+*.pdf
+*.odp
+*.pptx
+*.xlsx
+*.rds
+*.idat
+*.gz
+.git_bug
+.gitbug2
+results/Thumbs.db
+*.db
+02_Merge/t-SNE and UHC of selected studies.rmd
+data/
+data/2017_Jakel_450K_ACC, PanNET, MacNEC, Normal Pancreas, Pancreatic Cells
+data/2018_Chan_450K_PanNETs
+data/2018_Laura_EPIC_Paragangliomas
+data/2018_Selenica_EPIC_SPN
+data/2020_DiDomenico_450K_PanNETs, Normal Pancreas
+data/2020_Tirosh_EPIC_PanNETs
+data/2021_Endo_PDAC, Normal Pancreas
+data/2021_Lakis_PanNET
+data/UMCU
+01_Load&Normalize/FIltered probes.xlsx
+01_Load&Normalize/Load and normalize_TEMPLATE.Rmd
+01_Load&Normalize/Quality Control/
+02_Merge/Merge an Peek training cohort (by downsampling) DiDomenico
+02_Merge/Merge an Peek training cohort (by downsampling) DiDomenico.rmd
+02_Merge/Merge an Peek training cohort (by downsampling) DiDomenicoChan.rmd
+02_Merge/Merge an Peek training cohort (by downsampling) panNET(DiDomenicoChan), NP(EndoDiDomenico)
+02_Merge/Merge an Peek training cohort (by downsampling) panNET(DiDomenicoChan), NP(EndoDiDomenico).rmd
+02_Merge/Merge an Peek training cohort (by downsampling) panNET(DiDomenicoChan), NP(EndoDiDomenico)_Final.rmd
+02_Merge/Merge an Peek training cohort (no downsampling) Di Domenico.rmd
+02_Merge/Merge an Peek training cohort (no downsampling) panNET(DiDomenicoChan), NP(EndoDiDomenico)_Final.rmd
+02_Merge/Merge&Peek normalized data Noob.Rmd
+02_Merge/Merge&Peek normalized data Noob_Downsampled.Rmd
+02_Merge/Merge&Peek normalized data Noob_Downsampled_zonder DiDomenico.Rmd
+02_Merge/Merge&Peek normalized data Noob_zonder DiDomenico.Rmd
+02_Merge/Merge&Peek normalized data ssNoob.Rmd
+02_Merge/Merged/
+02_Merge/Select Most variable probes.rmd
+02_Merge/Test tumor purity.rmd
+02_Merge/UMCU_UnsupervisedHierarchicalClustering.rmd
+04_RandomForest/5000MVP.Rdata
+04_RandomForest/5000MVPbyRF.Rdata
+04_RandomForest/920MVPbyRF.Rdata
+04_RandomForest/MVPbyRF.Rdata
+02_Merge/t-SNE and UHC of selected studies.rmd
+04_RandomForest/Misclassificaties.odt
+04_RandomForest/Random Forest as example by StatQuest.rmd
+04_RandomForest/random_forest_mds_plot.pdf
+07_CV/
+Random Forest as example by StatQuest.rmd
+Resultaten.odp
+Ridge, Lasso and Elastic NET Regressionas example by statquest.rmd

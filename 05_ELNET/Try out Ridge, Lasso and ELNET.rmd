@@ -1,0 +1,116 @@
+Try out Ridge, Lasso and ELNET
+
+#First call the required packages 
+```{r}
+library('glmnet')
+```
+
+#Load trainingset and prepare (these is the dataset with a selection of 5000MVP on PanNETs(Chan+DiDomenico), ACC and SPN)
+```{r}
+load('T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/04_RandomForest/5000MVP.RData')
+origin <- annodatamerged
+rownames(annodatamerged) <- annodatamerged[,1]
+annodatamerged[,1:3] <- NULL
+annodatamerged[,2:3] <- NULL
+data <- annodatamerged
+rm(annodatamerged)
+```
+
+# Split dataset into training (80%) and testing (20%) databases
+```{r}
+set.seed(123)
+
+data1 <- data[,2:5001]#delete Sample_Group
+
+data_selection <- floor(0.8 *  nrow(data1))
+
+train_ind <- sample(seq_len(nrow(data1)), size = data_selection)
+
+train <- data1[train_ind, ]
+xtrain <- train[,1:51]
+xtrainm <- as.matrix(xtrain)
+ytrain <- train[,52]
+ytrainm <- as.matrix(ytrain)
+
+# Create the values that were 'not' chosen
+# Test values
+test <- data1[-train_ind,]
+xtest <- test[,1:51]
+xtestm <- as.matrix(xtest)
+ytest <- test[,52]
+ytestm <- as.matrix(ytest)
+```
+
+#Elastic NET (alpha 0.5 = mixture of ridge and lasso regression)
+```{r}
+alpha0.5.fit <- cv.glmnet(xtrainm, ytrainm, type.measure="mse", 
+  alpha=0.5, family="gaussian")
+
+alpha0.5.predicted <- 
+  predict(alpha0.5.fit, s=alpha0.5.fit$lambda.1se, newx=xtestm)
+
+mean((ytestm - alpha0.5.predicted)^2)
+``` 
+# try a bunch of different values for alpha rather than guess which one will be best.
+```{r}
+ist.of.fits <- list()
+for (i in 0:10) {
+  ## Here's what's going on in this loop...
+  ## We are testing alpha = i/10. This means we are testing
+  ## alpha = 0/10 = 0 on the first iteration, alpha = 1/10 = 0.1 on
+  ## the second iteration etc.
+  
+  ## First, make a variable name that we can use later to refer
+  ## to the model optimized for a specific alpha.
+  ## For example, when alpha = 0, we will be able to refer to 
+  ## that model with the variable name "alpha0".
+  fit.name <- paste0("alpha", i/10)
+  
+  ## Now fit a model (i.e. optimize lambda) and store it in a list that 
+  ## uses the variable name we just created as the reference.
+  list.of.fits[[fit.name]] <-
+    cv.glmnet(xtrainm, ytrainm, type.measure="mse", alpha=i/10, 
+      family="gaussian")
+}
+``` 
+
+```{r}
+# Now we see which alpha (0, 0.1, ... , 0.9, 1) does the best job
+## predicting the values in the Testing dataset.
+list.of.fits <- list()
+for (i in 0:10) {
+  fit.name <- paste0("alpha", i/10)
+  list.of.fits[[fit.name]] <-
+    cv.glmnet(xtrainm, ytrainm, type.measure="mse", alpha=i/10, femily="gaussian")
+}
+
+results <- data.frame()
+for (i in 0:10) {
+  fit.name <- paste0("alpha", i/10)
+  ## Use each model to predict 'y' given the Testing dataset
+  predicted <- 
+    predict(list.of.fits[[fit.name]], 
+      s=list.of.fits[[fit.name]]$lambda.1se, newx=xtestm)
+  
+  ## Calculate the Mean Squared Error...
+  mse <- mean((ytestm - predicted)^2)
+  
+  ## Store the results
+  temp <- data.frame(alpha=i/10, mse=mse, fit.name=fit.name)
+  results <- rbind(results, temp)
+}
+
+## View the results
+results
+``` 
+
+```{r}
+ddd$prediction <- as.factor(predict(model3, newdata=ddd, type = "class"))
+```
+
+
+
+
+
+
+

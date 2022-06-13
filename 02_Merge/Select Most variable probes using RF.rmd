@@ -1,0 +1,154 @@
+Select Most variable probes using RF
+by Anna Vera Verschuur
+
+# Call required packages
+```{r}
+library('ggplot2')
+library('cowplot')
+library('randomForest')
+library('tidyverse')
+library('caret')
+```
+
+# Load preprocessed data
+```{r}
+#panNETs 1
+load('T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/01_Load&Normalize/PreProcessedDataSets/preprocessedssNoobPanNETChan11032022.rData')
+panNETChan <- bValsnoobdf
+
+load('T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/01_Load&Normalize/PreProcessedDataSets/preprocessedssNoobPanNETDiDomenico11032022.rData')
+panNETDiDomenico <- bValsnoobdf
+
+#ACC 2
+load('T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/01_Load&Normalize/PreProcessedDataSets/preprocessedssNoobACCJakel11032022.rData')
+ACCJakel <- bValsnoobdf
+
+#SPN 3
+load('T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/01_Load&Normalize/PreProcessedDataSets/preprocessedssNoobSPNSelenica11032022.rData')
+SPNSelenica <- bValsnoobdf
+
+PD_combined<-read.csv("T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/00_Methylation Data/PD_Annotation.csv", header=TRUE)
+rm(bValsnoobdf)
+```
+
+## (1) Merge tumors of training cohort together
+```{r}
+premerge1<- merge(SPNSelenica, ACCJakel, by.x="row.names", by.y="row.names")
+premerge2<- merge(premerge1, panNETChan, by.x="Row.names", by.y="row.names")
+merged <- merge(premerge2, panNETDiDomenico, by.x="Row.names", by.y="row.names")
+rownames(merged) <- merged[,1]
+merged[,1] <- NULL
+```
+### remove dfs
+```{r}
+rm(premerge1)
+rm(premerge2)
+rm(panNETChan)
+rm(panNETDiDomenico)
+rm(SPNSelenica)
+rm(ACCJakel)
+```
+
+# Select MVPs 
+```{r}
+#use merged for splitting variables on row-base
+list1<- split(merged, factor(sort(rank(row.names(merged))%%40)))
+
+# transpose list
+tlist <- lapply(list1,function(x){
+     t(x)
+})
+
+#create dataframe with sample group
+PD <- PD_combined
+rownames(PD) <- PD_combined[,4]
+PD[,c(1:2, 4:6)] <- NULL
+PD$Sample_Group <- as.factor(PD$Sample_Group)
+
+#merge dataframes within list with sampmle group annotation
+func <- function(x,y){merge(x, y, by.x="row.names", by.y="row.names")}
+mlist <- lapply (tlist, func, PD)
+
+#name rownames and remove column with rownames subsequently
+mlist2 <- lapply(mlist, function(x){rownames(x) <- x[,1];x})
+mlist3 <- lapply(mlist2, function(x){x[,1] <- NULL; x})
+
+#drop levels
+library(gdata)
+mlist4 <- drop.levels(mlist3)
+
+#rm data
+rm(list1)
+rm(mlist)
+rm(mlist2)
+rm(mlist3)
+
+# get list of important probes using RF
+rf <- lapply(mlist4, function(x){importance(randomForest(Sample_Group~., data = x, proximity = TRUE))})
+
+#bind dataframes within list
+library(dplyr)
+rf2 <- do.call("rbind", rf)
+
+
+# select MeanDecreaseGini
+rf2 <- as.data.frame(rf2)
+selected <- rf2 %>%
+  filter(rf2$MeanDecreaseGini>0.0)
+
+selected1 <- rf2 %>%
+  filter(rf2$MeanDecreaseGini>=0.1)
+```
+
+# make new df of the MVPs and redo RF
+```{r}
+# create df with most important MDG's 
+pre <- merge(selected1, merged, by.x="row.names", by.y="row.names")
+rownames(pre) <- pre[,1]
+pre[,1:2] <- NULL
+
+# transform dataframe
+tpre <-as.data.frame(t(pre))
+tpre[1:10,1:10]
+
+#add a collumn with 'Sample_Group'
+MVPselection <- merge(PD, tpre, by.x="row.names", by.y="row.names", sort = FALSE)
+MVPselection[1:10,1:10]
+rownames(MVPselection) <- MVPselection[,1]
+MVPselection[,1] <- NULL
+
+droplevels(MVPselection$Sample_Group)
+MVPselection$Sample_Group <- factor(MVPselection$Sample_Group)
+
+#Build RandomForest
+model <- randomForest(Sample_Group~., data=MVPselection, proximity=TRUE)
+
+# check information and performance of the model
+model
+plot(model)
+varImpPlot(model)
+MVPselection$prediction <- as.factor(predict(model, newdata=MVPselection, type = "class"))
+confusionMatrix(table(MVPselection$prediction,MVPselection$Sample_Group))
+
+# transform to data.frame
+rf3 <- as.data.frame(importance(model))
+
+# select 5000MVP
+selectedMVP <- rf3 %>%
+  filter(rf3$MeanDecreaseGini>0.0)
+
+#create df with MVPs
+MVP <- merge(selectedMVP, merged, by.x="row.names", by.y="row.names")
+rownames(MVP) <- MVP[,1]
+MVP[,1:2] <- NULL
+
+MVP <-as.data.frame(t(MVP))
+MVP[1:10,1:10]
+``` 
+
+#Save MVPs
+```{r}
+save(MVP, file = 'T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/04_RandomForest/920MVPbyRF.Rdata')
+```
+
+

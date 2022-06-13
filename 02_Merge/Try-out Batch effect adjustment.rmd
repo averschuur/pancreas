@@ -1,0 +1,49 @@
+#Try-out Batch effect adjustment
+
+
+```{r}
+library(sva)
+```
+
+## Load preprocessed nomalized data
+```{r message=FALSE, warning=FALSE}
+load('T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/01_Load&Normalize/PreProcessedDataSets/nonfilteredMSet.ssnoobACCJakel11032022.rData')
+```
+
+## transform MSet to GRSet
+```{r}
+RSet.noob <- ratioConvert(MSet.ssnoob, what = "both", keepCN = TRUE)
+GRSet.noob <- mapToGenome(RSet.noob)
+annotation <- getAnnotation(GRSet.noob)
+```
+
+```{r}
+mval <- getM(GRSet.noob)[1:5000,]
+pheno <- pData(GRSet.noob)
+mod <- model.matrix(~as.factor(Slide), data=pheno)
+mod0 <- model.matrix(~1, data=pheno)
+sva.results <- sva(mval, mod, mod0)
+```
+
+## Applying the sva function to estimate batch and other artifacts
+```{r}
+n.sv = num.sv(mval,mod,method="leek")
+svobj = sva(mval,mod,mod0,n.sv=n.sv)
+```
+## Adjusting for surrogate variables using the f.pvalue function
+```{r}
+pValues = f.pvalue(mval,mod,mod0)
+qValues = p.adjust(pValues,method="BH")
+```
+
+```{r}
+modSv = cbind(mod,svobj$sv)
+mod0Sv = cbind(mod0,svobj$sv)
+pValuesSv = f.pvalue(mval,modSv,mod0Sv)
+qValuesSv = p.adjust(pValuesSv,method="BH")
+```
+
+# Clean evironment
+```{r}
+rm(list=ls())
+```

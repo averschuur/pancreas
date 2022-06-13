@@ -1,0 +1,391 @@
+Estimate Tumor purity
+using RFpurify from https://github.com/mwsill/RFpurify
+
+
+#Open required packges
+```{r}
+library(RFpurify)
+library(minfi)
+library(minfiData)
+library(tidyverse)
+```
+#Predict tumor purity from betas values
+
+# ACC
+```{r}
+# find idat files
+test_data <- list.files(path = "T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/00_Methylation Data/2017_Jakel_450K_ACC, PanNET, MacNEC, Normal Pancreas, Pancreatic Cells/IdatFiles_ACC",
+                        pattern = "_Grn.idat", 
+                        full.names = TRUE)
+
+# laod data
+test_data <- minfi::read.metharray(basenames = test_data) %>% 
+  preprocessNoob %>% 
+  getBeta
+
+# get purity estimates
+absolute <- RFpurify::predict_purity_betas(betas = test_data, method = "ABSOLUTE")
+estimate <- RFpurify::predict_purity_betas(betas = test_data, method = "ESTIMATE")
+
+# collect data into tibble (similiar to a dataframe)
+data <- tibble(id = colnames(test_data),
+               avg_beta = apply(test_data, 2, mean, na.rm = TRUE), 
+               absolute = absolute, 
+               estimate = estimate)
+
+# plot 
+data %>% 
+  ggplot(aes(estimate, absolute)) + 
+  scale_x_continuous(limits = c(0, 1)) + 
+  scale_y_continuous(limits = c(0, 1)) +
+  geom_point(size = 3) + 
+  geom_abline(aes(intercept=0, slope=1, color ="red")) +
+  theme_gray()
+
+# save
+ggsave("T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/03_TumorPurity/Purity_JakelACC.png", width =7, height =5)
+
+#barplot
+ggplot(data, aes(id, estimate)) +
+     geom_bar(stat = "identity") +
+     scale_fill_hue(c = 40) +
+     theme(legend.position="none") +
+     coord_flip()
+
+#save
+ggsave("T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/03_TumorPurity/Purity_JakelACC_barplot.png", width =7, height =5)
+
+rm(list=ls())
+```
+
+#SPN
+```{r}
+# find idat files
+test_data <- list.files(path = "T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/00_Methylation Data/2018_Selenica_EPIC_SPN/Idat Files",
+                        pattern = "_Grn.idat", 
+                        full.names = TRUE)
+
+# load data
+test_data <- minfi::read.metharray(basenames = test_data) %>% 
+  preprocessNoob %>% 
+  getBeta
+
+# get purity estimates
+absolute <- RFpurify::predict_purity_betas(betas = test_data, method = "ABSOLUTE")
+estimate <- RFpurify::predict_purity_betas(betas = test_data, method = "ESTIMATE")
+
+# collect data into tibble (similiar to a dataframe)
+data <- tibble(id = colnames(test_data),
+               avg_beta = apply(test_data, 2, mean, na.rm = TRUE), 
+               absolute = absolute, 
+               estimate = estimate)
+
+# plot 
+data %>% 
+  ggplot(aes(estimate, absolute)) + 
+  scale_x_continuous(limits = c(0, 1)) + 
+  scale_y_continuous(limits = c(0, 1)) +
+  geom_point(size = 3) + 
+  geom_abline(aes(intercept=0, slope=1, color ="red")) +
+  theme_gray()
+
+# save
+ggsave("T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/03_TumorPurity/Purity_SelenicaSPN.png", width =7, height =5)
+
+#barplot
+ggplot(data, aes(id, estimate)) +
+     geom_bar(stat = "identity") +
+     scale_fill_hue(c = 40) +
+     theme(legend.position="none") +
+     coord_flip()
+
+#save
+ggsave("T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/03_TumorPurity/Purity_SelenicaSPN_barplot.png", width =7, height =5)
+
+rm(list=ls())
+```
+
+# paNETChan
+```{r}
+# find idat files
+test_data <- list.files(path = "T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/00_Methylation Data/2018_Chan_450K_PanNETs/Idat Files",
+                        pattern = "_Grn.idat", 
+                        full.names = TRUE)
+
+# laod data
+test_data <- minfi::read.metharray(basenames = test_data) %>% 
+  preprocessNoob %>% 
+  getBeta
+
+# get purity estimates
+absolute <- RFpurify::predict_purity_betas(betas = test_data, method = "ABSOLUTE")
+estimate <- RFpurify::predict_purity_betas(betas = test_data, method = "ESTIMATE")
+
+# collect data into tibble (similiar to a dataframe)
+data <- tibble(id = colnames(test_data),
+               avg_beta = apply(test_data, 2, mean, na.rm = TRUE), 
+               absolute = absolute, 
+               estimate = estimate)
+
+# plot 
+data %>% 
+  ggplot(aes(estimate, absolute)) + 
+  scale_x_continuous(limits = c(0, 1)) + 
+  scale_y_continuous(limits = c(0, 1)) +
+  geom_point(size = 3) + 
+  geom_abline(aes(intercept=0, slope=1, color ="red")) +
+  theme_gray()
+
+# save
+ggsave("T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/03_TumorPurity/Purity_paNETChan.png", width =7, height =5)
+
+#barplot
+ggplot(data, aes(id, estimate)) +
+     geom_bar(stat = "identity") +
+     scale_fill_hue(c = 40) +
+     theme(legend.position="none") +
+     coord_flip()
+
+#save
+ggsave("T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/03_TumorPurity/Purity_panNETChan_barplot.png", width =7, height =5)
+
+
+rm(list=ls())
+```
+
+# panNETDomenico
+```{r}
+# find idat files
+test_data <- list.files(path = "T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/00_Methylation Data/2020_DiDomenico_450K_PanNETs, Normal Pancreas/Idat Files_PanNET_DiDomenico",
+                        pattern = "_Grn.idat", 
+                        full.names = TRUE)
+
+# laod data
+test_data <- minfi::read.metharray(basenames = test_data) %>% 
+  preprocessNoob %>% 
+  getBeta
+
+# get purity estimates
+absolute <- RFpurify::predict_purity_betas(betas = test_data, method = "ABSOLUTE")
+estimate <- RFpurify::predict_purity_betas(betas = test_data, method = "ESTIMATE")
+
+# collect data into tibble (similiar to a dataframe)
+data <- tibble(id = colnames(test_data),
+               avg_beta = apply(test_data, 2, mean, na.rm = TRUE), 
+               absolute = absolute, 
+               estimate = estimate)
+
+# plot 
+data %>% 
+  ggplot(aes(estimate, absolute)) + 
+  scale_x_continuous(limits = c(0, 1)) + 
+  scale_y_continuous(limits = c(0, 1)) +
+  geom_point(size = 3) + 
+  geom_abline(aes(intercept=0, slope=1, color ="red")) +
+  theme_gray()
+
+# save
+ggsave("T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/03_TumorPurity/Purity_panNETDomenico.png", width =7, height =5)
+
+#barplot
+ggplot(data, aes(id, estimate)) +
+     geom_bar(stat = "identity") +
+     scale_fill_hue(c = 40) +
+     theme(legend.position="none") +
+     coord_flip()
+
+#save
+ggsave("T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/03_TumorPurity/Purity_panNETDomenico_barplot.png", width =7, height =5)
+
+rm(list=ls())
+```
+
+# PDAC
+```{r}
+# find idat files
+test_data <- list.files(path = "T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/00_Methylation Data/2021_Endo_PDAC, Normal Pancreas/Idat Files_PDAC",
+                        pattern = "_Grn.idat", 
+                        full.names = TRUE)
+
+# load data
+test_data <- minfi::read.metharray(basenames = test_data) %>% 
+  preprocessNoob %>% 
+  getBeta
+
+# get purity estimates
+absolute <- RFpurify::predict_purity_betas(betas = test_data, method = "ABSOLUTE")
+estimate <- RFpurify::predict_purity_betas(betas = test_data, method = "ESTIMATE")
+
+# collect data into tibble (similiar to a dataframe)
+data <- tibble(id = colnames(test_data),
+               avg_beta = apply(test_data, 2, mean, na.rm = TRUE), 
+               absolute = absolute, 
+               estimate = estimate)
+
+# plot 
+data %>% 
+  ggplot(aes(estimate, absolute)) + 
+  scale_x_continuous(limits = c(0, 1)) + 
+  scale_y_continuous(limits = c(0, 1)) +
+  geom_point(size = 3) + 
+  geom_abline(aes(intercept=0, slope=1, color ="red")) +
+  theme_gray()
+
+# save
+ggsave("T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/03_TumorPurity/Purity_PDACEndo.png", width =7, height =5)
+
+#barplot
+ggplot(data, aes(id, estimate)) +
+     geom_bar(stat = "identity") +
+     scale_fill_hue(c = 40) +
+     theme(legend.position="none") +
+     coord_flip()
+
+#save
+ggsave("T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/03_TumorPurity/Purity_PDACEndo_barplot.png", width =7, height =5)
+
+rm(list=ls())
+```
+
+# NP Endo
+```{r}
+# find idat files
+test_data <- list.files(path = "T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/00_Methylation Data/2021_Endo_PDAC, Normal Pancreas/Idat Files_Normal Pancreas",
+                        pattern = "_Grn.idat", 
+                        full.names = TRUE)
+
+# laod data
+test_data <- minfi::read.metharray(basenames = test_data) %>% 
+  preprocessNoob %>% 
+  getBeta
+
+# get purity estimates
+absolute <- RFpurify::predict_purity_betas(betas = test_data, method = "ABSOLUTE")
+estimate <- RFpurify::predict_purity_betas(betas = test_data, method = "ESTIMATE")
+
+# collect data into tibble (similiar to a dataframe)
+data <- tibble(id = colnames(test_data),
+               avg_beta = apply(test_data, 2, mean, na.rm = TRUE), 
+               absolute = absolute, 
+               estimate = estimate)
+
+# plot 
+data %>% 
+  ggplot(aes(estimate, absolute)) + 
+  scale_x_continuous(limits = c(0, 1)) + 
+  scale_y_continuous(limits = c(0, 1)) +
+  geom_point(size = 3) + 
+  geom_abline(aes(intercept=0, slope=1, color ="red")) +
+  theme_gray()
+
+# save
+ggsave("T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/03_TumorPurity/Purity_NPEndo.png", width =7, height =5)
+
+#barplot
+ggplot(data, aes(id, estimate)) +
+     geom_bar(stat = "identity") +
+     scale_fill_hue(c = 40) +
+     theme(legend.position="none") +
+     coord_flip()
+
+#save
+ggsave("T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/03_TumorPurity/Purity_NPEndo_barplot.png", width =7, height =5)
+
+
+rm(list=ls())
+```
+
+# NP DiDomenico
+```{r}
+# find idat files
+test_data <- list.files(path = "T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/00_Methylation Data/2020_DiDomenico_450K_PanNETs, Normal Pancreas/Idat Files_Normal Pancreas_DiDomenico",
+                        pattern = "_Grn.idat", 
+                        full.names = TRUE)
+
+# laod data
+test_data <- minfi::read.metharray(basenames = test_data) %>% 
+  preprocessNoob %>% 
+  getBeta
+
+# get purity estimates
+absolute <- RFpurify::predict_purity_betas(betas = test_data, method = "ABSOLUTE")
+estimate <- RFpurify::predict_purity_betas(betas = test_data, method = "ESTIMATE")
+
+# collect data into tibble (similiar to a dataframe)
+data <- tibble(id = colnames(test_data),
+               avg_beta = apply(test_data, 2, mean, na.rm = TRUE), 
+               absolute = absolute, 
+               estimate = estimate)
+
+# plot 
+data %>% 
+  ggplot(aes(estimate, absolute)) + 
+  scale_x_continuous(limits = c(0, 1)) + 
+  scale_y_continuous(limits = c(0, 1)) +
+  geom_point(size = 3) + 
+  geom_abline(aes(intercept=0, slope=1, color ="red")) +
+  theme_gray()
+
+# save
+ggsave("T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/03_TumorPurity/Purity_NPDomenico.png", width =7, height =5)
+
+#barplot
+ggplot(data, aes(id, estimate)) +
+     geom_bar(stat = "identity") +
+     scale_fill_hue(c = 40) +
+     theme(legend.position="none") +
+     coord_flip()
+
+#save
+ggsave("T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/03_TumorPurity/Purity_NPDiDomenico_barplot.png", width =7, height =5)
+
+
+rm(list=ls())
+```
+
+#UMCU
+```{r}
+# find idat files
+test_data <- list.files(path = "T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/00_Methylation Data/UMCU/Idat Files_All",
+                        pattern = "_Grn.idat", 
+                        full.names = TRUE)
+
+# load data
+test_data <- minfi::read.metharray(basenames = test_data, force=TRUE) %>% 
+  preprocessNoob %>% 
+  getBeta
+
+# get purity estimates
+absolute <- RFpurify::predict_purity_betas(betas = test_data, method = "ABSOLUTE")
+estimate <- RFpurify::predict_purity_betas(betas = test_data, method = "ESTIMATE")
+
+# collect data into tibble (similiar to a dataframe)
+data <- tibble(id = colnames(test_data),
+               avg_beta = apply(test_data, 2, mean, na.rm = TRUE), 
+               absolute = absolute, 
+               estimate = estimate)
+
+# plot 
+data %>% 
+  ggplot(aes(estimate, absolute)) + 
+  scale_x_continuous(limits = c(0, 1)) + 
+  scale_y_continuous(limits = c(0, 1)) +
+  geom_point(size = 3) + 
+  geom_abline(aes(intercept=0, slope=1, color ="red")) +
+  theme_gray()
+
+# save
+ggsave("T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/03_TumorPurity/Purity_UMCU.png", width =7, height =5)
+
+#barplot
+ggplot(data, aes(id, estimate)) +
+     geom_bar(stat = "identity") +
+     scale_fill_hue(c = 40) +
+     theme(legend.position="none") +
+     coord_flip()
+
+#save
+ggsave("T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/03_TumorPurity/Purity_UMCU_barplot.png", width =7, height =5)
+
+rm(list=ls())
+```

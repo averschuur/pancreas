@@ -1,0 +1,139 @@
+t-SNE and Unsupervised hierarchical clustering
+
+# call reguired package
+```{r}
+library('Rtsne')
+library('ggplot2')
+library('ggrepel')
+library('ggsci')
+library('pheatmap')
+``` 
+
+# load data
+```{r}
+load('T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/04_RandomForest/920MVPbyRF.Rdata')
+
+PD_combined<-read.csv("T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/data/PD_Annotation.csv", header=TRUE)
+``` 
+
+# (1) T-sne visualization on complete training cohort with label
+
+```{r}
+#transform dataframe
+tMVP <- as.data.frame(t(MVP))
+
+#add Sample_Group
+MVPanno <- merge(PD_combined, tMVP, by.x="Sentrix_ID", by.y="row.names", sort = FALSE)
+MVPanno[1:10,1:10]
+
+# get unique groups for tsne_plot
+unique(MVPanno$Sample_Group)
+
+# make t-SNE
+set.seed(29) # for reproducibility
+tsne_out <- Rtsne(MVPanno,pca=FALSE, 
+                  dims = 2, 
+                  theta=0, 
+                  perplexity = 5, 
+                  verbose=F, 
+                  max_iter = 5000,
+                  check_duplicates = FALSE)
+
+tsne_plot <- data.frame(x = tsne_out$Y[,1], 
+                        y = tsne_out$Y[,2], 
+                        col = MVPanno$Sample_Group, 
+                        lab = MVPanno$Sample_Name)
+ggplot(tsne_plot)+ 
+  geom_point(aes(x=x, y=y, color=col, size=30))+
+  geom_text_repel(aes(x=x, y=y, label=lab), size=3, family="Arial")+
+  labs(x = "t-SNE 1", y = "t-SNE 2", col = "Tissue Type")+
+  scale_color_npg(labels = c("panNET", "ACC", "SPN"))+
+  theme(
+    panel.border = element_blank(),  
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.line = element_line(colour = "grey"),
+    legend.key=element_blank())+
+  guides(colour = guide_legend(override.aes = list(size=5)))
+
+# Save data: 
+perplexity=5 => 1_5
+ggsave("tSNE_by downsampling PanNETs(DiDomenico+Chan), ACC and SPN_1_5.png", 
+       path = "T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/02_Merge/Merged/", 
+       width = 12,
+       height = 6,
+       units = "in")
+```
+
+# (2) Unsupervised Hierarchical Clustering complete training cohort 
+```{r message=FALSE, warning=FALSE}
+#set the colors
+Var1        <- c("darkblue", "darkgreen", "darkorange")
+names(Var1) <- c("panNET", "ACC", "SPN")
+anno_colors <- list(Var1 = Var1)
+
+#
+pd<-as.data.frame(MVPanno$Sample_Group)
+row.names(pd) <- colnames(MVP)
+names(pd)[1]<-"Type"
+pd[,1]<-as.character(pd[,1])
+
+#create heatmap
+
+set.seed(666)
+heat<-pheatmap(MVP,
+               kmeans_k = NA, 
+               breaks = NA,
+               border_color= "grey60",
+               cellwidth = 5,
+               cellheight = 0.05,
+               scale = "none",
+               cluster_rows = TRUE,
+               cluster_cols = TRUE,
+               clustering_distance_rows = "euclidean",
+               clustering_distance_cols = "euclidean", 
+               clustering_method = "complete",
+               cutree_rows = 1, 
+               cutree_cols = 1,
+               legend_labels = NA,
+               annotation_row = NA, 
+               annotation.col = pd,
+               annotation = pd, 
+               annotation_colors = anno_colors, 
+               annotation_legend = TRUE,
+               annotation_names_row = TRUE, 
+               annotation_names_col = TRUE,
+               drop_levels = TRUE, 
+               show_rownames = F, 
+               show_colnames = T, 
+               main = NA, 
+               fontsize = 4,
+               fontsize_row = 4, 
+               fontsize_col = 4,
+               display_numbers = F, 
+               number_format = "%.2f", 
+               number_color = "grey30",
+               fontsize_number = 0.8 * fontsize, 
+               gaps_row = NULL,
+               gaps_col = NULL,
+               labels_row = NULL, 
+               labels_col = NULL,
+               filename = NA, 
+               width = NA,
+               height = NA, silent = FALSE)
+
+# funtion to save heatmap
+save_pheatmap_pdf <- function(x, filename, width=30, height=7) {
+   stopifnot(!missing(x))
+   stopifnot(!missing(filename))
+   pdf(filename, width=width, height=height)
+   grid::grid.newpage()
+   grid::grid.draw(x$gtable)
+   dev.off()
+}
+
+#save heatmap
+save_pheatmap_pdf(heat, "T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/results/SupFigclustering3.pdf")
+```
+

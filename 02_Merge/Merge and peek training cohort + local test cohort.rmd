@@ -1,0 +1,348 @@
+Merge an Peek training cohort (by downsampling)
+by downsampling PanNETs(Chan), ACC, SPN, PDAC and Normal pancreas
+
+# First call the required packages and functions
+
+```{r message=FALSE, warning=FALSE}
+library('Rtsne')
+library('ggplot2')
+library('ggrepel')
+library('ggsci')
+library('caret')
+library('matrixStats')
+library('pheatmap')
+library('cowplot')
+library("stringr")
+```
+
+# Load preprocessed data
+```{r message=FALSE, warning=FALSE}
+#panNETs 1
+load('T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/01_Load&Normalize/PreProcessedDataSets/preprocessedssNoobPanNETChan11032022.rData')
+panNETChan <- bValsnoobdf
+
+load('T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/01_Load&Normalize/PreProcessedDataSets/preprocessedssNoobPanNETDiDomenico11032022.rData')
+panNETDiDomenico <- bValsnoobdf
+
+#PDAC 2
+load('T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/01_Load&Normalize/PreProcessedDataSets/preprocessedssNoobEndoPDAC11032022.rData')
+PDACEndo <- bValsnoobdf
+
+#ACC 3
+load('T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/01_Load&Normalize/PreProcessedDataSets/preprocessedssNoobACCJakel11032022.rData')
+ACCJakel <- bValsnoobdf
+
+#SPN 4
+load('T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/01_Load&Normalize/PreProcessedDataSets/preprocessedssNoobSPNSelenica11032022.rData')
+SPNSelenica <- bValsnoobdf
+
+# MaNEC 5
+load('T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/01_Load&Normalize/PreProcessedDataSets/preprocessedssNoobMaNECJakel11032022.rData')
+MaNECJAkel <- bValsnoobdf
+
+#Normal Cells 6
+load('T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/01_Load&Normalize/PreProcessedDataSets/preprocessedssNoobNPEndo14032022.rData')
+NPEndo <- bValsnoobdf
+
+#Pancreatic cells 7
+load('T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/01_Load&Normalize/PreProcessedDataSets/preprocessedssNoobPCJakel14032022.rData')
+PCJakel <-bValsnoobdf
+
+#UMCU 8
+load('T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/01_Load&Normalize/PreProcessedDataSets/preprocessedssNoobUMCU14032022.rData')
+UMCU <- bValsnoobdf
+
+PD_combined<-read.csv("T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/00_Methylation Data/PD_Annotation.csv", header=TRUE)
+rm(bValsnoobdf)
+```
+
+## Data merge and save for further processing
+Overlapping probes are selected by merging data. 
+
+First transform normalized data into data frames:
+```{r message=FALSE, warning=FALSE}
+df1<- as.data.frame(panNETChan)
+rm(panNETChan)
+df2<- as.data.frame(ACCJakel)
+rm(ACCJakel)
+df3<- as.data.frame(SPNSelenica)
+rm(SPNSelenica)
+df4<- as.data.frame(PDACEndo)
+rm(PDACEndo)
+df5<- as.data.frame(MaNECJAkel)
+rm(MaNECJAkel)
+df6<- as.data.frame(NPEndo)
+rm(NPEndo)
+df7<- as.data.frame(PCJakel)
+rm(PCJakel)
+df8<-as.data.frame(UMCU)
+rm(UMCU)
+```
+
+# Overview of studies and number of tumors
+Training cohort:
+panNETs         (32)    df 1 (32) Chan
+ACC             (37)    df 2 (37) Jakel
+SPN             (13)    df 3 (13) Selenica
+PDAC            (82)    df 4 (82) Endo
+MaNEC           (4)     df 5 (4) Jakel --> left out for downsampling
+Normal pancreas (40)    df 6 (34) Endo
+Pancreatic cells        df 7 (7) Jakel --> left out for downsampling
+All (209)
+
+Local test cohort:
+UMCU                    df 8 (18)
+
+## (1) Merge tumors of training cohort together
+```{r}
+premerge1<- merge(df1, df2, by.x="row.names", by.y="row.names")
+premerge2<- merge(premerge1, df3, by.x="Row.names", by.y="row.names")
+rm(premerge1)
+premerge3<- merge(premerge2, df4, by.x="Row.names", by.y="row.names")
+rm(premerge2)
+premerge4<- merge(premerge3, df5, by.x="Row.names", by.y="row.names")
+rm(premerge3)
+premerge5<- merge(premerge4, df6, by.x="Row.names", by.y="row.names")
+rm(premerge4)
+merged_TC <- merge(premerge5, df7, by.x="Row.names", by.y="row.names")
+rm(premerge5)
+rownames(merged_TC) <- merged_TC[,1]
+merged_TC[,1] <- NULL
+```
+
+# (4) downsampling SPN and PDAC
+First combine downsample group
+```{r}
+Down_s<- merge(df1, df2, by.x="row.names", by.y="row.names")
+Down_s<- merge(Down_s, df3, by.x="Row.names", by.y="row.names")
+Down_s<- merge(Down_s, df4, by.x="Row.names", by.y="row.names")
+Down_s<- merge(Down_s, df6, by.x="Row.names", by.y="row.names")
+rownames(Down_s) <- Down_s[,1]
+Down_s[,1] <- NULL
+```
+
+## add class information
+```{r message=FALSE, warning=FALSE}
+tDown_s<-as.data.frame(t(Down_s))
+annoGEO_DS<- merge(PD_combined[,c(1,3:4,6)], tDown_s, by.x="Sentrix_ID", by.y="row.names", sort = FALSE)
+annoGEO_DS$Sample_Group <- factor(annoGEO_DS$Sample_Group, levels = unique(annoGEO_DS$Sample_Group))
+```
+
+## Downsample 3 times
+```{r}
+set.seed(666)
+downsampnames<-list()
+for(i in 1:3){
+  downsampnames[[i]]<-downSample(annoGEO_DS[,1],annoGEO_DS$Sample_Group)
+}
+```
+
+# (5) merge with beta values and determine mean absolute standard deviation of PDACs, ACCs, pNETs and SPNs
+```{r}
+downsamples<-lapply(downsampnames,function(x,y){merge(x, y, by.x=names(x)[1], by.y="row.names")},tDown_s)
+downsamples<-lapply(downsamples, "[", -c(1, 2))
+downsamples<-lapply(downsamples,function(x){t(x)})
+a<-downsamples[[1]]
+b<-downsamples[[2]]
+c<-downsamples[[3]]
+amads=apply(a,1,mad)
+bmads=apply(b,1,mad)
+cmads=apply(c,1,mad)
+amergedmad<-as.data.frame(a[rev(order(amads)),])
+bmergedmad<-as.data.frame(b[rev(order(bmads)),])
+cmergedmad<-as.data.frame(c[rev(order(cmads)),])
+amergedmad$ordera<-1:nrow(amergedmad)
+bmergedmad$orderb<-1:nrow(bmergedmad)
+cmergedmad$orderc<-1:nrow(cmergedmad)
+```
+### Check max
+```{r}
+max(amads)
+max(bmads)
+max(cmads)
+```
+## Merge downsampled with pNET and NP selection and select top 5000 MVP
+```{r}
+MVprobes<-merge(amergedmad, bmergedmad, by.x= "row.names", by.y= "row.names")
+MVprobes<-merge(MVprobes, cmergedmad, by.x= "Row.names", by.y= "row.names")
+rownames(MVprobes) <- MVprobes[,1]
+MVprobes[,1] <-NULL
+MVprobes<-MVprobes[,c('ordera', 'orderb', 'orderc')]
+```
+
+#vervolg
+```{r}
+MVprobes$min <- rowMins(as.matrix(MVprobes))
+MVprobes$max <- rowMaxs(as.matrix(MVprobes))
+#MVprobes <-MVprobes[order(MVprobes$min, decreasing = FALSE),]
+bestprobesMVP1<-MVprobes[1:5000,c("min", "max")]
+```
+
+```{r}
+mergedmad<-merge(bestprobesMVP1, merged_TC, by.x= "row.names", by.y= "row.names")
+rownames(mergedmad) <- mergedmad[,1]
+mergedmad[,1:3] <-NULL
+```
+
+## add class information to 500MVP
+```{r message=FALSE, warning=FALSE, fig.width=9, fig.height=4.5}
+tmergedmad5000<-as.data.frame(t(mergedmad))
+annodatamerged<- merge(PD_combined, tmergedmad5000, by.x="Sentrix_ID", by.y="row.names", sort = FALSE)
+annodatamerged$Sample_Group <- factor(annodatamerged$Sample_Group, levels = unique(annodatamerged$Sample_Group))
+```
+
+## get unique groups for later use
+```{r}
+unique(annodatamerged$Sample_Group)
+```
+"PanNET_Chan", "Normal pancreas_Endo", "Acinar cells_Jakël", "Alpha cells_Jakël", "Beta cells_Jakël", "Ductal cells_Jakël", "ACC_Jakël", "SPN_Selenica", "PDAC_Endo", "MaNEC_Jakël"
+
+
+# (6) T-sne visualization on complete training cohort with label
+Without PCA
+```{r}
+set.seed(29) # for reproducibility
+tsne_out <- Rtsne(tmergedmad5000,pca=FALSE, 
+                  dims = 2, 
+                  theta=0, 
+                  perplexity = 10, 
+                  verbose=F, 
+                  max_iter = 5000)
+
+tsne_plot <- data.frame(x = tsne_out$Y[,1], y = tsne_out$Y[,2], col = annodatamerged$Sample_Group, lab = annodatamerged$Sample_Name)
+ggplot(tsne_plot)+ 
+  geom_point(aes(x=x, y=y, color=col, size=30))+
+  geom_text_repel(aes(x=x, y=y, label=lab), size=3, family="Arial")+
+  labs(x = "t-SNE 1", y = "t-SNE 2", col = "Origins")+
+  scale_color_npg_adaptive(labels = c("PanNET_Chan", "Normal pancreas_Endo", "Acinar cells_Jakël", "Alpha cells_Jakël", "Beta cells_Jakël", "Ductal cells_Jakël", "ACC_Jakël", "SPN_Selenica", "PDAC_Endo", "MaNEC_Jakël"))+
+  theme(
+    panel.border = element_blank(),  
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.line = element_line(colour = "grey"),
+    legend.key=element_blank())+
+  guides(colour = guide_legend(override.aes = list(size=5)))
+```
+
+## Save data: 
+perplexity=20 => 3_10
+```{r}
+ggsave("tSNE_5_10_by downsampling PanNETs, ACC, SPN, PDAC and Normal pancreas.png", path = "T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/02_Merge/Merged/", width = 12,
+  height = 6,
+  units = "in")
+```
+
+# (7) Unsupervised Hierarchical Clustering complete training cohort 
+```{r message=FALSE, warning=FALSE}
+Var1        <- c("aquamarine", "chartreuse1", "cornflowerblue", "darkblue", "darkgoldenrod1", "brown1", "darkgreen", "darkorange", "darkviolet", "darkseagreen3")
+names(Var1) <- c("PanNET_Chan", "Normal pancreas_Endo", "Acinar cells_Jakël", "Alpha cells_Jakël", "Beta cells_Jakël", "Ductal cells_Jakël", "ACC_Jakël", "SPN_Selenica", "PDAC_Endo", "MaNEC_Jakël")
+anno_colors <- list(Var1 = Var1)
+```
+
+```{r}
+pd<-as.data.frame(annodatamerged$Sample_Group)
+row.names(pd)<-annodatamerged[,6]
+names(pd)[1]<-"Type"
+pd[,1]<-as.character(pd[,1])
+
+#mergedmad met juiste annotatie
+tmergedmadAnno <- merge(PD_combined, tmergedmad5000, by.x="Sentrix_ID", by.y="row.names")
+rownames(tmergedmadAnno) <- tmergedmadAnno[,6]
+tmergedmadAnno[,1:6] <- NULL
+mergedmadAnno <-as.data.frame(t(tmergedmadAnno))
+```
+
+```{r}
+df<- pd
+mat <- mergedmadAnno
+colnames(mat) <- str_sub(colnames(mat))
+```
+rownames(df) <- colnames(mat)
+
+```{r}
+set.seed(666)
+heat<-pheatmap(mergedmadAnno[1:4995,1:209], kmeans_k = NA, breaks = NA, border_color= "grey60",cellwidth = 5, cellheight = 0.05, scale = "none", cluster_rows = FALSE,
+         cluster_cols = TRUE, clustering_distance_rows = Cluster,
+         clustering_distance_cols = Cluster, clustering_method = "complete",
+         cutree_rows = 1, cutree_cols = 1,
+         legend_labels = NA, annotation_row = NA, annotation.col = pd,
+         annotation = pd, annotation_colors = anno_colors, annotation_legend = TRUE,
+         annotation_names_row = TRUE, annotation_names_col = TRUE,
+         drop_levels = TRUE, show_rownames = F, show_colnames = T, main = NA, fontsize = 4,
+         fontsize_row = 4, fontsize_col = 4,
+         display_numbers = F, number_format = "%.2f", number_color = "grey30",
+         fontsize_number = 0.8 * fontsize, gaps_row = NULL, gaps_col = NULL,
+         labels_row = NULL, labels_col = NULL, filename = NA, width = NA,
+         height = NA, silent = FALSE)
+save_pheatmap_pdf <- function(x, filename, width=30, height=7) {
+   stopifnot(!missing(x))
+   stopifnot(!missing(filename))
+   pdf(filename, width=width, height=height)
+   grid::grid.newpage()
+   grid::grid.draw(x$gtable)
+   dev.off()
+}
+save_pheatmap_pdf(heat, "T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/02_Merge/Merged/SupFigclustering5.pdf")
+```
+# Merge with UMCU cases and add origin information
+```{r message=FALSE, warning=FALSE}
+mergedmadumcu<-merge(mergedmad, df8, by.x="row.names", by.y="row.names")
+rownames(mergedmadumcu) <- mergedmadumcu[,1]
+mergedmadumcu[,1] <- NULL
+nrow(mergedmadumcu)
+tmergedmadumcu<-as.data.frame(t(mergedmadumcu))
+annodatamergedumcu<- merge(tmergedmadumcu, PD_combined, by.x="row.names", by.y="Sentrix_ID", sort = FALSE)
+annodatamergedumcu$Sample_Group <- factor(annodatamergedumcu$Sample_Group, levels = unique(annodatamergedumcu$Sample_Group))
+```
+## get unique groups for later use
+```{r}
+unique(annodatamergedumcu$Sample_Group)
+```
+
+#  T-sne visualization on complete training cohort and UMCU test cohort
+Without PCA
+```{r}
+set.seed(29) # for reproducibility
+tsne_out <- Rtsne(tmergedmadumcu,pca=FALSE, 
+                  dims = 2, 
+                  theta=0, 
+                  perplexity = 10, 
+                  verbose=F, 
+                  max_iter = 5000)
+
+tsne_plot <- data.frame(x = tsne_out$Y[,1], y = tsne_out$Y[,2], col = annodatamergedumcu$Sample_Group, lab = annodatamergedumcu$Sample_Name)
+ggplot(tsne_plot)+ 
+  geom_point(aes(x=x, y=y, color=col, size=30))+
+  #geom_text_repel(aes(x=x, y=y, label=lab), size=3, family="Arial")+
+  labs(x = "t-SNE 1", y = "t-SNE 2", col = "Origins")+
+  scale_color_npg_adaptive(labels = c("PanNET_Chan", "ACC_Jakël", "SPN_Selenica", "PDAC_Endo", "MaNEC_Jakël", "Normal pancreas_Endo", "Acinar cells_Jakël", "Alpha cells_Jakël", "Beta cells_Jakël", "Ductal cells_Jakël",  "panNET_UMCU", "SPN_UMCU", "ACC_UMCU", "ACC_BM_UMCU", "Mixed ACC-NETG3_UMCU"))+
+  theme(
+    panel.border = element_blank(),  
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.line = element_line(colour = "grey"),
+    legend.key=element_blank())+
+  guides(colour = guide_legend(override.aes = list(size=5)))
+```
+
+## Save data: 
+perplexity=20 => 4_20
+```{r}
+ggsave("tSNE_4_10.png", path = "T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/02_Merge/Merged/", width = 12,
+  height = 6,
+  units = "in")
+```
+
+### clean evriment
+```{r}
+rm(df7)
+rm(df6)
+rm(df5)
+rm(df4)
+rm(df3)
+rm(df2)
+rm(df1)
+```
+

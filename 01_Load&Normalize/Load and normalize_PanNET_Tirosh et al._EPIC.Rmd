@@ -1,0 +1,286 @@
+# Load and normlize methylation data 
+## panNET - Tirosh et al.
+## by AVV
+
+#####################################
+########### Overview ################
+#####################################
+1. Load required packages
+2. Read data
+3. Create classes: MethylSet and RadioSet
+4. Quality control
+5. Normalization
+6. Filtering of probes
+7. Save data
+
+#######################################
+####### 1. Load required packages #####
+#######################################
+```{r}
+library(minfi)
+library(minfiData)
+library(conumee)
+library(limma)
+library(RColorBrewer)
+library(shinyMethyl)
+```
+## Check directory
+```{r}
+getwd()
+```
+#####################################
+########## 2. Read data #############
+#####################################
+# Parsing IDAT files from Illumina methylation arrays.
+output = RGSET: contains raw intensities in the green and red channels, accompanied with pheno data
+```{r}
+baseDir <- "T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/00_Methylation Data/2020_Tirosh_EPIC_PanNETs/RAW/panNET"
+targets <- read.metharray.sheet(baseDir)
+RGSet <- read.metharray.exp(base = baseDir, targets = targets, verbose=T)
+```
+## To access pheno data use:
+```{r}
+phenoData <- pData(RGSet)
+phenoData[,1:6]
+```
+## The RGChannelSet stores also a manifest object that contains the probe design information of the array:
+```{r}
+manifest <- getManifest(RGSet)
+manifest
+```
+##########################################
+####### create MethylSet and RadioSet#####
+##########################################
+
+## create MethylSet, RadioSet and Genomicset
+```{r}
+MSet <- preprocessRaw(RGSet) 
+RSet <- ratioConvert(MSet, what = "both", keepCN = TRUE)
+GRset <- mapToGenome(RSet)
+```
+## functions to acces data
+```{r}
+beta <- getBeta(GRset)
+M <- getM(GRset)
+CN <- getCN(GRset)
+sampleNames <- sampleNames(GRset)
+probeNames <- featureNames(GRset)
+pheno <- pData(GRset)
+```
+## return probe locations:
+````{r}
+gr <- granges(GRset)
+head(gr, n=3)
+````
+## Access the full annotation:
+```{r}
+annotation <- getAnnotation(GRset)
+names(annotation)
+```
+
+##################################
+####### 4. Quality control #######
+##################################
+
+## calculate mean P-values
+
+```{r}
+Pvalue <- detectionP(RGSet)
+
+pal <- brewer.pal(8,"Dark2")
+par(mfrow=c(1,2))
+barplot(colMeans(Pvalue), col=pal[factor(targets$Sample_Group)], las=2, 
+        cex.names=0.8, ylab="Mean detection p-values")
+abline(h=0.05,col="red")
+legend("topleft", legend=levels(factor(targets$Sample_Group)), fill=pal,
+       bg="white")
+
+barplot(colMeans(Pvalue), col=pal[factor(targets$Sample_Group)], las=2, 
+        cex.names=0.8, ylim=c(0,0.002), ylab="Mean detection p-values")
+abline(h=0.05,col="red")
+legend("topleft", legend=levels(factor(targets$Sample_Group)), fill=pal, 
+       bg="white")
+```
+## to save plots:
+```{r}
+pdf("T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/01_Load&Normalize/Quality Control/P-values_PanNET_Tirosh.pdf")
+barplot(colMeans(Pvalue), col=pal[factor(targets$Sample_Group)], las=2, 
+        cex.names=0.8, ylab="Mean detection p-values")
+abline(h=0.05,col="red")
+legend("topleft", legend=levels(factor(targets$Sample_Group)), fill=pal,
+       bg="white")
+
+barplot(colMeans(Pvalue), col=pal[factor(targets$Sample_Group)], las=2, 
+        cex.names=0.8, ylim=c(0,0.002), ylab="Mean detection p-values")
+abline(h=0.05,col="red")
+legend("topleft", legend=levels(factor(targets$Sample_Group)), fill=pal, 
+       bg="white")
+dev.off()
+``` 
+
+## Remove poor quality samples:
+```{r}
+# remove poor quality samples
+keep1 <- colMeans(Pvalue) < 0.05
+RGSet1 <- RGSet[,keep1]
+# remove poor quality samples from targets data
+targets1 <- targets[keep1,]
+targets1[,1:5]
+table(keep1)
+# remove poor quality samples from detection p-value table
+detP <- Pvalue[,keep1]
+dim(detP)
+```
+
+```{r}
+qc <- getQC(MSet)
+MSetEx <- addQC(MSet, qc = qc)
+plotQC(qc)
+```
+## Look at Beta value densities with densityplot or density beanplot
+```{r}
+densityPlot(MSet, sampGroups = phenoData$Sample_Group)
+densityBeanPlot(MSet, sampGroups = phenoData$Sample_Group)
+````
+## Probe control
+```{r}
+controlStripPlot(RGSet, controls="BISULFITE CONVERSION II")
+```
+## create QC report:
+```{r}
+qcReport(RGSet, 
+         sampNames = phenoData$listData$Sample_Name, 
+         sampGroups = phenoData$listData$Sample_Group, 
+         pdf= "T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/01_Load&Normalize/Quality Control/QC-report_PanNET_Tirosh.pdf")
+```
+### Sex prediction
+```{r}
+predictedSex <- getSex(GRset, cutoff = -2)$predictedSex
+table(predictedSex)
+```
+###############################
+####### 5.normalization #######
+###############################
+
+```{r}
+set.seed(666)
+RGSet.RAW <- preprocessRaw(RGSet)
+MSet.ssnoob <- preprocessNoob(RGSet, dyeMethod= "single")
+betas.ssnoob.PanNETTirosh <- getBeta(MSet.ssnoob)
+````
+## to save data
+```{r}
+save(MSet.ssnoob, file = 'T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/01_Load&Normalize/PreProcessedDataSets/nonfilteredMSet.ssnoobPanNETTirosh11032022.rData')
+
+save(betas.ssnoob.PanNETTirosh, file = 'T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/01_Load&Normalize/PreProcessedDataSets/nonfilteredbetas.ssnoobPanNETTirosh15042022.rData')
+```
+
+# effect of normalisation:
+```{r}
+par(mfrow = c(2, 2))
+pdf("T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/01_Load&Normalize/Quality Control/EffectNormalization_PanNET_Tirosh.pdf")
+mdsPlot(getM(RGSet.RAW), 
+        numPositions = 1000, 
+        sampGroups = targets$status,
+        sampNames = targets$person,
+        legendPos = "topright",
+        main = "preprocessRaw")
+mdsPlot(getM(MSet.ssnoob), 
+        numPositions = 1000, 
+        sampGroups = targets$status,
+        sampNames = targets$person,
+        legendPos = "bottomleft",
+        main = "preprocessNoob")
+dev.off()
+```
+
+## visualisation before after normalisation
+```{R}
+# visualise what the data looks like before and after normalisation
+par(mfrow=c(1,2))
+pdf("T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/01_Load&Normalize/Quality Control/Normalization_PanNET_Tirosh.pdf")
+densityPlot(RGSet, sampGroups=targets$Sample_Group,main="Raw", legend=FALSE)
+legend("top", legend = levels(factor(targets$Sample_Group)), 
+       text.col=brewer.pal(8,"Dark2"))
+densityPlot(getBeta(MSet.ssnoob), sampGroups=targets$Sample_Group,
+            main="Normalized", legend=FALSE)
+legend("top", legend = levels(factor(targets$Sample_Group)), 
+       text.col=brewer.pal(8,"Dark2"))
+dev.off()
+```
+## ShinyData
+```{r}
+summary <- shinySummarize(RGSet)
+summary.Noob <- shinySummarize(GRSet.ssnoob)
+```
+
+```{r}
+runShinyMethyl(summary, summary.Noob)
+```
+
+############################################
+############ Filter probes #################
+############################################
+
+# Noob normalization
+```{r}
+detP <- detectionP(RGSet)
+```
+
+```{r}
+# transform MSet to GRSet
+RSet.noob <- ratioConvert(MSet.ssnoob, what = "both", keepCN = TRUE)
+GRSet.noob <- mapToGenome(RSet.noob)
+annotation <- getAnnotation(GRSet.noob)
+# ensure probes are in the same order in the GRset.quantile and Pvalue objects
+detP1 <- detP[match(featureNames(GRSet.noob),rownames(detP)),] 
+dim(detP1)
+
+# remove any probes that have failed in one or more samples
+keep2 <- rowSums(detP1 < 0.01) == ncol(GRSet.noob) 
+table(keep2)
+
+GRSet.noobFlt <- GRSet.noob[keep2,]
+GRSet.noobFlt
+```
+## Filter XY chromosomes
+```{r}
+# if your data includes males and females, remove probes on the sex chromosomes
+keep3 <- !(featureNames(GRSet.noobFlt) %in% annotation$Name[annotation$chr %in% 
+                                                        c("chrX","chrY")])
+table(keep3)
+GRSet.noobFltXY <- GRSet.noobFlt[keep3,]
+GRSet.noobFltXY
+```
+## remove probes with SNPs at CpG site
+```{r}
+GRSet.noobFltXYSNP <- dropLociWithSnps(GRSet.noobFltXY)
+GRSet.noobFltXYSNP
+```
+## remove cross-active probes
+```{r}
+xReactiveProbes <- read.csv("https://github.com/sirselim/illumina450k_filtering/blob/master/48639-non-specific-probes-Illumina450k.csv", stringsAsFactors=FALSE)
+keep4 <- !(featureNames(GRSet.noobFltXYSNP) %in% xReactiveProbes$TargetID)
+table(keep4)
+GRSet.noobFltXYSNPX <- GRSet.noobFltXYSNP[keep4,] 
+GRSet.noobFltXYSNPX
+```
+
+## calculate B-values for statistical analysis
+```{r}
+bValsnoob <- getBeta(GRSet.noobFltXYSNPX)
+head(bValsnoob[,1:5])
+```
+
+## Save normalized data for later use
+```{r}
+bValsnoobdf <- as.data.frame(bValsnoob)
+head(bValsnoobdf[1:10,1:10])
+save(bValsnoobdf, file = 'T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/01_Load&Normalize/PreProcessedDataSets/preprocessedssNoobpanNETTirosh11032022.rData')
+```
+
+# Clean evironment
+```{r}
+rm(list=ls())
+```
+
