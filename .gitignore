@@ -13,6 +13,7 @@
 *.gz
 .git_bug
 .gitbug2
+*.vsdx
 results/Thumbs.db
 *.db
 02_Merge/t-SNE and UHC of selected studies.rmd
