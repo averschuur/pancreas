@@ -1,5 +1,8 @@
 .Rproj.user
 .Rhistory
+00_christoph_annotation/*
+00_christoph_data/*
+.DS_Store
 *.Rdata
 .Ruserdata
 *.Rproj
