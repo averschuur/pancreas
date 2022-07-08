@@ -2,6 +2,8 @@
 .Rhistory
 00_christoph_annotation/*
 00_christoph_data/*
+00_christoph_figures/*
+00_christoph_output/*
 .DS_Store
 *.Rdata
 .Ruserdata

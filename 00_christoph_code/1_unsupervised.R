@@ -10,6 +10,7 @@ library(umap)
 betas <- readRDS("./00_christoph_data/methylation_data.rds")
 anno <- readRDS("./00_christoph_annotation/sample_annotation.rds")
 
+
 # keep only primaries of PNETs, ACCs and SPNs
 anno <- anno %>% 
   filter(tumorType %in% c("PanNET", "ACC", "SPN")) %>% 
