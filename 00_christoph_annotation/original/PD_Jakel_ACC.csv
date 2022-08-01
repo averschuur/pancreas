@@ -1,0 +1,38 @@
+Sample_Name,Array_Type,Sample_Group,Sentrix_ID,Sentrix_Position
+11T,Illumina_450K,primary tumor (acinar cell carcinoma),9769100027,R06C02
+13T,Illumina_450K,primary tumor (acinar cell carcinoma),9769100027,R04C01
+15T,Illumina_450K,primary tumor (acinar cell carcinoma),9769100027,R05C02
+16T,Illumina_450K,primary tumor (acinar cell carcinoma),9769100027,R02C01
+19T,Illumina_450K,primary tumor (acinar cell carcinoma),9769100027,R01C02
+4T,Illumina_450K,primary tumor (acinar cell carcinoma),9769100027,R06C01
+5T,Illumina_450K,primary tumor (acinar cell carcinoma),9769100027,R03C01
+12T,Illumina_450K,primary tumor (acinar cell carcinoma),9769100029,R03C01
+17T,Illumina_450K,primary tumor (acinar cell carcinoma),9769100029,R04C02
+3T,Illumina_450K,primary tumor (acinar cell carcinoma),9769100029,R01C01
+6T,Illumina_450K,primary tumor (acinar cell carcinoma),9769100029,R02C01
+7T,Illumina_450K,primary tumor (acinar cell carcinoma),9769100029,R04C01
+10T,Illumina_450K,primary tumor (acinar cell carcinoma),9769100039,R06C01
+14T,Illumina_450K,primary tumor (acinar cell carcinoma),9769100039,R06C02
+18T,Illumina_450K,primary tumor (acinar cell carcinoma),9769100039,R01C01
+1T,Illumina_450K,primary tumor (acinar cell carcinoma),9769100039,R04C02
+8T,Illumina_450K,primary tumor (acinar cell carcinoma),9769100039,R02C02
+9T,Illumina_450K,primary tumor (acinar cell carcinoma),9769100039,R02C01
+ACC K13 T,Illumina_450K,primary tumor (acinar cell carcinoma),200325530168,R02C02
+ACC K18 T,Illumina_450K,primary tumor (acinar cell carcinoma),200325530168,R06C02
+ACC K2 T,Illumina_450K,primary tumor (acinar cell carcinoma),200325530168,R06C01
+ACC K4 T,Illumina_450K,primary tumor (acinar cell carcinoma),200325530168,R05C02
+ACC K5 T,Illumina_450K,primary tumor (acinar cell carcinoma),200325530168,R03C02
+ACC K9 T,Illumina_450K,primary tumor (acinar cell carcinoma),200325530168,R04C01
+ACC K10 T,Illumina_450K,primary tumor (acinar cell carcinoma),200360420003,R04C01
+ACC K14 T,Illumina_450K,primary tumor (acinar cell carcinoma),200360420003,R02C02
+ACC K6 T,Illumina_450K,primary tumor (acinar cell carcinoma),200360420003,R04C02
+ACC K7 T,Illumina_450K,primary tumor (acinar cell carcinoma),200360420003,R06C02
+ACC K8 T,Illumina_450K,primary tumor (acinar cell carcinoma),200360420003,R06C01
+ACC K1 T,Illumina_450K,primary tumor (acinar cell carcinoma),200360420007,R02C01
+ACC K11 T,Illumina_450K,primary tumor (acinar cell carcinoma),200360420007,R04C01
+ACC K19 T,Illumina_450K,primary tumor (acinar cell carcinoma),200360420007,R03C02
+ACC K3 T,Illumina_450K,primary tumor (acinar cell carcinoma),200360420007,R01C02
+ACC K12 T,Illumina_450K,primary tumor (acinar cell carcinoma),200360420008,R03C01
+ACC K15 T,Illumina_450K,primary tumor (acinar cell carcinoma),200360420008,R06C01
+ACC K16 T,Illumina_450K,primary tumor (acinar cell carcinoma),200360420008,R05C01
+ACC K20 T,Illumina_450K,primary tumor (acinar cell carcinoma),200360420008,R01C01
