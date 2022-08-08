@@ -1,5 +1,7 @@
 .Rproj.user
 .Rhistory
+./input
+./data
 00_christoph_data/*
 00_christoph_figures/*
 00_christoph_output/*

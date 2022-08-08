@@ -309,13 +309,13 @@ test_anno %>%
 # dimensionality reduction and UMAP/tSNE for whole cohort ----------------------
 
 dr_input <- 1 - cor(data[top_var_probes, ])
-#dr_input <- data[top_var_probes, ] %>% t
+dr_input <- data[top_var_probes, ] %>% t
 
 # run t-SNE
 tsne <- Rtsne(dr_input, perplexity = 15)
 
 # run UMAP
-umap <- umap(dr_input)
+umap <- umap(dr_input, min_dist = 0.5, n_neighbors = 10)
 plot(umap$layout)
 
 # add info to annotation
@@ -335,11 +335,11 @@ anno <- anno %>%
 
 # tumor type
 anno %>% 
-  ggplot(aes(tsne_x, tsne_y, color = tumorType)) +
+  ggplot(aes(umap_x, umap_y, color = tumorType)) +
   geom_point(size = 3, alpha = 0.5) +
   scale_colour_manual(values = branded_colors) +
   theme_bw(base_size = 18) +
-  labs(x = "t-SNE 1", y = "t-SNE 2") +
+  labs(x = "Umap 1", y = "Umap 2") +
   theme(legend.position = "none")
 
 # avg methylation 
