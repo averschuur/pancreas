@@ -13,11 +13,11 @@
 *.pptx
 *.idat
 *.gz
+*.vsdx
+*.db
 .git_bug
 .gitbug2
-*.vsdx
 results/Thumbs.db
-*.db
 02_Merge/t-SNE and UHC of selected studies.rmd
 data/
 data/2017_Jakel_450K_ACC, PanNET, MacNEC, Normal Pancreas, Pancreatic Cells

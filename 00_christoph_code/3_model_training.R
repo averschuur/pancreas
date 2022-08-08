@@ -336,7 +336,7 @@ anno <- anno %>%
 # tumor type
 anno %>% 
   ggplot(aes(umap_x, umap_y, color = tumorType)) +
-  geom_point(size = 3, alpha = 0.5) +
+  geom_point(size = 4, alpha = 0.7) +
   scale_colour_manual(values = branded_colors) +
   theme_bw(base_size = 18) +
   labs(x = "Umap 1", y = "Umap 2") +
