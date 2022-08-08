@@ -1,0 +1,1 @@
+branded_colors <- c("#f6d8ae", "#2e4057", "#da4167", "#3cdbd3", "#f4d35e", "#8d96a3")

@@ -29,6 +29,23 @@ getControlBeta <- function(rgSet,
     cbind(channel = "Red", ctlR),
     cbind(channel = "Green", ctlG))
   return(ctl)
+}
 
 
+
+# model training ---------------------------------------------------------------
+
+to_one_hot <- function(labels){
+  unique_labels <- sort(unique(labels))
+  n_labels <- length(unique_labels)
+  n_samples <- length(labels)
+  
+  onehot <- matrix(data = 0, ncol = n_labels, nrow = n_samples)
+  
+  for (i in 1:n_labels){
+    onehot[labels == unique_labels[i], i] <- 1
+  }
+  
+  colnames(onehot) <- unique_labels
+  return(onehot)
 }
