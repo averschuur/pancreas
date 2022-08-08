@@ -7,7 +7,7 @@ arrayId,source,sampleName,arrayType,tumorType,location
 9933448113_R06C02,Chan,AM1_mk53,Illumina_450K,PanNET,metastasis
 9934398017_R04C01,Chan,D_LS21,Illumina_450K,PanNET,primary
 9373550141_R04C01,Chan,D_mk18,Illumina_450K,PanNET,primary
-9933448113_R03C02,Chan,D_mk26,Illumina_450K,PanNET,primary
+9933448113_R03C02,Chan,D_mk26,Illumina_450K,PanNET,metastasis
 9933448113_R04C02,Chan,D_mk34,Illumina_450K,PanNET,metastasis
 9373550141_R04C02,Chan,D_mk42,Illumina_450K,PanNET,metastasis
 9373550165_R01C01,Chan,D_mk51,Illumina_450K,PanNET,metastasis
