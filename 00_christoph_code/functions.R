@@ -33,7 +33,7 @@ getControlBeta <- function(rgSet,
 
 
 
-# model training ---------------------------------------------------------------
+# model training and evaluation ------------------------------------------------
 
 to_one_hot <- function(labels){
   unique_labels <- sort(unique(labels))
@@ -48,4 +48,28 @@ to_one_hot <- function(labels){
   
   colnames(onehot) <- unique_labels
   return(onehot)
+}
+
+
+slide_along_cutoff <- function(label_real, label_pred, scores, cutoffs){
+  
+  # instantiate empty variables
+  predictable <- NULL
+  accuracy <- NULL
+  
+  n <- length(cutoffs)
+  n_samples <- length(label_real)
+  
+  for (i in 1:n){
+    which_na <- which(scores < cutoffs[i])
+    n_na <- length(which_na)
+    label_pred[which_na] <- NA
+    accuracy <- c(accuracy, sum(label_real == label_pred, na.rm = TRUE) / (n_samples - n_na))
+    predictable <- c(predictable, (n_samples - n_na)/n_samples)
+  }
+  
+  results <- tibble(cutoff = cutoffs, 
+                    accuracy = accuracy, 
+                    predictable = predictable) 
+  return(results)
 }
