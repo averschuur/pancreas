@@ -27,7 +27,7 @@ ACCJakel <- bValsnoobdf
 load('T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/01_Load&Normalize/PreProcessedDataSets/preprocessedssNoobSPNSelenica11032022.rData')
 SPNSelenica <- bValsnoobdf
 
-PD_combined<-read.csv("T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/00_Methylation Data/PD_Annotation.csv", header=TRUE)
+PD_combined<-read.csv("T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/data/PD_Annotation.csv", header=TRUE)
 rm(bValsnoobdf)
 ```
 
@@ -65,7 +65,7 @@ rownames(PD) <- PD_combined[,4]
 PD[,c(1:2, 4:6)] <- NULL
 PD$Sample_Group <- as.factor(PD$Sample_Group)
 
-#merge dataframes within list with sampmle group annotation
+#merge dataframes within list with sample group annotation
 func <- function(x,y){merge(x, y, by.x="row.names", by.y="row.names")}
 mlist <- lapply (tlist, func, PD)
 
@@ -93,23 +93,27 @@ rf2 <- do.call("rbind", rf)
 
 # select MeanDecreaseGini
 rf2 <- as.data.frame(rf2)
-selected <- rf2 %>%
-  filter(rf2$MeanDecreaseGini>0.0)
 
-selected1 <- rf2 %>%
-  filter(rf2$MeanDecreaseGini>=0.1)
+names <- rownames(rf2)
+rfselection1 <-cbind(names,rf2)
+
+rfselection <- as.data.frame(rfselection1[order(rfselection1$MeanDecreaseGini, decreasing = TRUE),])
+rfselection <- as.data.frame(rfselection[1:5000,])
 ```
 
 # make new df of the MVPs and redo RF
 ```{r}
 # create df with most important MDG's 
-pre <- merge(selected1, merged, by.x="row.names", by.y="row.names")
+pre <- merge(rfselection, merged, by.x="names", by.y="row.names")
 rownames(pre) <- pre[,1]
 pre[,1:2] <- NULL
 
 # transform dataframe
 tpre <-as.data.frame(t(pre))
 tpre[1:10,1:10]
+
+#Save MVPs
+save(tpre, file = 'T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/04_RandomForest/5000MVPbyRF.Rdata')
 
 #add a collumn with 'Sample_Group'
 MVPselection <- merge(PD, tpre, by.x="row.names", by.y="row.names", sort = FALSE)

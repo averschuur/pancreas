@@ -19,16 +19,16 @@
 .gitbug2
 results/Thumbs.db
 02_Merge/t-SNE and UHC of selected studies.rmd
-data/
-data/2017_Jakel_450K_ACC, PanNET, MacNEC, Normal Pancreas, Pancreatic Cells
-data/2018_Chan_450K_PanNETs
-data/2018_Laura_EPIC_Paragangliomas
-data/2018_Selenica_EPIC_SPN
-data/2020_DiDomenico_450K_PanNETs, Normal Pancreas
-data/2020_Tirosh_EPIC_PanNETs
-data/2021_Endo_PDAC, Normal Pancreas
-data/2021_Lakis_PanNET
-data/UMCU
+input/
+input/2017_Jakel_450K_ACC, PanNET, MacNEC, Normal Pancreas, Pancreatic Cells
+input/2018_Chan_450K_PanNETs
+input/2018_Laura_EPIC_Paragangliomas
+input/2018_Selenica_EPIC_SPN
+input/2020_DiDomenico_450K_PanNETs, Normal Pancreas
+input/2020_Tirosh_EPIC_PanNETs
+input/2021_Endo_PDAC, Normal Pancreas
+input/2021_Lakis_PanNET
+input/UMCU
 01_Load&Normalize/FIltered probes.xlsx
 01_Load&Normalize/Load and normalize_TEMPLATE.Rmd
 01_Load&Normalize/Quality Control/
@@ -61,3 +61,84 @@ data/UMCU
 Random Forest as example by StatQuest.rmd
 Resultaten.odp
 Ridge, Lasso and Elastic NET Regressionas example by statquest.rmd
+01_Load&Normalize/PreProcessedDataSets/nonfilteredbetas.noobNPDiDomenico14032022.rds
+01_Load&Normalize/PreProcessedDataSets/nonfilteredbetas.noobNPEndo14032022.rds
+01_Load&Normalize/PreProcessedDataSets/nonfilteredbetas.noobPCJakel14032022.rds
+01_Load&Normalize/PreProcessedDataSets/nonfilteredbetas.noobPCJakel17042022.rds
+01_Load&Normalize/PreProcessedDataSets/nonfilteredbetas.noobSPNSelenica17042022.rds
+01_Load&Normalize/PreProcessedDataSets/nonfilteredbetas.noobUMCU17042022.rds
+01_Load&Normalize/PreProcessedDataSets/nonfilteredbetas.ssnoobEndoPDAC17042022.rds
+01_Load&Normalize/PreProcessedDataSets/nonfilteredbetas.ssnoobPanNETDiDomenico11032022.rds
+01_Load&Normalize/PreProcessedDataSets/nonfilteredbetas.ssnoobpanNETChan11032022.rds
+03_TumorPurity/Purity_JakelACC.png
+03_TumorPurity/Purity_JakelACC_barplot.png
+03_TumorPurity/Purity_NPDiDomenico_barplot.png
+03_TumorPurity/Purity_NPDomenico.png
+03_TumorPurity/Purity_NPEndo.png
+03_TumorPurity/Purity_NPEndo_barplot.png
+03_TumorPurity/Purity_PDACEndo.png
+03_TumorPurity/Purity_PDACEndo_barplot.png
+03_TumorPurity/Purity_SelenicaSPN.png
+03_TumorPurity/Purity_SelenicaSPN_barplot.png
+03_TumorPurity/Purity_UMCU.png
+03_TumorPurity/Purity_UMCU_barplot.png
+03_TumorPurity/Purity_paNETChan.png
+03_TumorPurity/Purity_panNETChan_barplot.png
+03_TumorPurity/Purity_panNETDomenico.png
+03_TumorPurity/Purity_panNETDomenico_barplot.png
+MLDS.R
+UHC_using pearson1.pdf
+accuracy nn_model.png
+data/methylation_data.rds
+data/methylation_data_filtered.rds
+data/sample_annotation.rds
+output/AVG betas_PNET.png
+output/AVG methylation-whole cohort.png
+output/Beta's avg_Chan-Jakel_pnet.png
+output/Beta's avg_DiDomenico-Chan_pnet.png
+output/Beta's avg_DiDomenico-Jakel_pnet.png
+output/Beta's avg_Normal Pancreas.png
+output/Controle Score_Normal Pancreas.png
+output/Controle Score_PNET.png
+output/Density plots_PNET.png
+output/DensityPlot_T-Test_Normal Pancreas.png
+output/Heatmap cor_Normal Pancreas.pdf
+output/Heatmap cor_pnet.pdf
+output/NN1.png
+output/NN2.png
+output/NN3.png
+output/No_Normal Pancreas.png
+output/No_PNET.png
+output/Score_method vs tumortype.png
+output/Score_tumortype vs study.png
+output/T-Test_Normal Pancreas.png
+output/UMAP-whole cohort.png
+output/UMAP-whole cohort_labeled.png
+output/Violin_Beta's avg_Normal Pancreas.png
+output/Violin_Beta's avg_PNETs.png
+output/Volcano_T-Testg_Normal Pancreas.png
+output/accuracy nn_model.png
+output/accuracy_models.png
+output/cutoff vs. predictable/ accuracy.png
+output/heatmap_pnet.png
+output/heatmap_whole cohort.pdf
+output/tSNE by split-whole cohort.png
+output/tSNE-all.png
+output/tSNE-all_labelled.png
+output/tSNE-whole cohort.png
+output/tSNE-whole cohort_labeled.png
+output/tSNEUMAP_PNET.png
+output/tSNE_PNET.png
+results/SupFigclustering3.pdf
+results/Tables.xlsx
+results/UHC_MLDS.pdf
+results/UHC_using pearson
+results/UHC_using pearson.png
+results/UHC_using pearson1.pdf
+results/UHC_using pearson1.png
+results/image.png
+results/t-SNE.png
+results/tSNE_by downsampling PanNETs(DiDomenico+Chan), ACC and SPN_1_5.png
+modified:   02_Merge/Select Most variable probes using RF.rmd
+modified:   02_Merge/t-SNE and UHC.rmd
+modified:   04_RandomForest/Random Forest.rmd

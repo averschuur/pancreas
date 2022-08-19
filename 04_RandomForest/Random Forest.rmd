@@ -23,7 +23,7 @@ rm(annodatamerged)
 #Load and prepare test set (UMCU dataset)
 ```{r}
 load('T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/01_Load&Normalize/PreProcessedDataSets/preprocessedssNoobUMCU14032022.rData')
-PD_combined<-read.csv("T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/00_Methylation Data/PD_Annotation.csv", header=TRUE)
+PD_combined<-read.csv("T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/data/PD_Annotation.csv", header=TRUE)
 UMCU <- bValsnoobdf
 UMCU <- as.data.frame(t(UMCU))
 
@@ -43,17 +43,16 @@ rownames(annoUMCU_select) <- annoUMCU_select[,1]
 annoUMCU_select[,1] <- NULL
 ```
 
-#Set seed to reproduce the results
-```{r} 
-set.seed(30)
-```
-#Adjust number of probes of 'trainingset'  to that of 'testset'
 ```{r}
+#Set seed to reproduce the results
+set.seed(30)
+
+#Adjust number of probes of 'trainingset'  to that of 'testset'
 d <- data %>%
   select(contains(colnames(UMCU_select)))
 
 #Load annotation
-PD_combined<-read.csv("T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/00_Methylation Data/PD_Annotation.csv", header=TRUE)
+PD_combined<-read.csv("T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/data/PD_Annotation.csv", header=TRUE)
 
 dd <- merge(PD_combined[,c(3:4)], d, by.x="Sentrix_ID", by.y="row.names", sort = FALSE)
 rownames(dd) <- dd[,1]
@@ -76,12 +75,10 @@ varImpPlot(model)
 ```{r}
 oob.error.data <- data.frame(
   Trees=rep(1:nrow(model$err.rate), times=3),
-  Type=rep(c("OOB", "ACC", "Normal pancreas", "panNET", "PDAC", "SPN"), each=nrow(model$err.rate)),
+  Type=rep(c("OOB", "ACC", "panNET", "SPN"), each=nrow(model$err.rate)),
   Error=c(model$err.rate[,"OOB"], 
     model$err.rate[,"ACC"], 
-    model$err.rate[,"Normal pancreas"],
     model$err.rate[,"panNET"],
-    model$err.rate[,"PDAC"],
     model$err.rate[,"SPN"]))
 
 ggplot(data=oob.error.data, aes(x=Trees, y=Error)) +

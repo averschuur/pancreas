@@ -47,7 +47,7 @@ ggplot(tsne_plot)+
   geom_point(aes(x=x, y=y, color=col, size=30))+
   geom_text_repel(aes(x=x, y=y, label=lab), size=3, family="Arial")+
   labs(x = "t-SNE 1", y = "t-SNE 2", col = "Tissue Type")+
-  scale_color_npg(labels = c("panNET", "ACC", "SPN"))+
+  scale_color_npg(labels = c("ACC", "panNET", "SPN"))+
   theme(
     panel.border = element_blank(),  
     panel.grid.major = element_blank(),
@@ -75,14 +75,24 @@ anno_colors <- list(Var1 = Var1)
 
 #
 pd<-as.data.frame(MVPanno$Sample_Group)
-row.names(pd) <- colnames(MVP)
+row.names(pd) <- colnames(tMVP)
 names(pd)[1]<-"Type"
 pd[,1]<-as.character(pd[,1])
 
 #create heatmap
+MVPhm <- MVPanno
+rownames(MVPhm) <- MVPhm[,6]
+MVPhm[,1:6] <- NULL
+MVPhm <- as.data.frame(t(MVPhm))
 
+a<-cor(MVPhm, method = "pearson", use = "everything")
+heatmap(a)
+heat <- heatmap(a)
+save_pheatmap_pdf(heat, "T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/results/UHC_using pearson1.pdf")
+
+#or
 set.seed(666)
-heat<-pheatmap(MVP,
+heat<-pheatmap(tMVP,
                kmeans_k = NA, 
                breaks = NA,
                border_color= "grey60",
@@ -134,6 +144,6 @@ save_pheatmap_pdf <- function(x, filename, width=30, height=7) {
 }
 
 #save heatmap
-save_pheatmap_pdf(heat, "T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/results/SupFigclustering3.pdf")
+save_pheatmap_pdf(heat, "T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/results/UHC_using pearson1.pdf")
 ```
 
