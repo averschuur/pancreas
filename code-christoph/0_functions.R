@@ -32,7 +32,6 @@ getControlBeta <- function(rgSet,
 }
 
 
-
 # model training and evaluation ------------------------------------------------
 
 to_one_hot <- function(labels){
@@ -72,4 +71,16 @@ slide_along_cutoff <- function(label_real, label_pred, scores, cutoffs){
                     accuracy = accuracy, 
                     predictable = predictable) 
   return(results)
+}
+
+
+
+# save heatmap as pdf  ---------------------------------------------------------
+save_pheatmap_pdf <- function(x, filename, width=30, height=7) {
+  stopifnot(!missing(x))
+  stopifnot(!missing(filename))
+  pdf(filename, width=width, height=height)
+  grid::grid.newpage()
+  grid::grid.draw(x$gtable)
+  dev.off()
 }

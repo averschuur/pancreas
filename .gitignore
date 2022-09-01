@@ -2,9 +2,7 @@
 .Rhistory
 ./input
 ./data
-00_christoph_data/*
-00_christoph_figures/*
-00_christoph_output/*
+./presentations
 01_Load&Normalize/*
 02_Merge/*
 03_TumorPurity/*
@@ -14,6 +12,7 @@
 results/*
 data/*
 output/*
+input/*
 .DS_Store
 *.Rdata
 .Ruserdata
@@ -27,20 +26,7 @@ output/*
 .git_bug
 .gitbug2
 results/Thumbs.db
-input/*
-input/2017_Jakel_450K_ACC, PanNET, MacNEC, Normal Pancreas, Pancreatic Cells
-input/2018_Chan_450K_PanNETs
-input/2018_Laura_EPIC_Paragangliomas
-input/2018_Selenica_EPIC_SPN
-input/2020_DiDomenico_450K_PanNETs, Normal Pancreas
-input/2020_Tirosh_EPIC_PanNETs
-input/2021_Endo_PDAC, Normal Pancreas
-input/2021_Lakis_PanNET
-input/UMCU
 Resultaten.odp
 MLDS.R
 UHC_using pearson1.pdf
 accuracy nn_model.png
-data/methylation_data.rds
-data/methylation_data_filtered.rds
-data/sample_annotation.rds
