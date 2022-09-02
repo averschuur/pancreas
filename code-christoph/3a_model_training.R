@@ -16,11 +16,11 @@ library(xgboost)
 library(Rtsne)
 library(umap)
 
-source("./code/0_functions.R")
-source("./code/0_branded_colors.R")
+source("./code-christoph/0_functions.R")
+source("./code-christoph/0_branded_colors.R")
 
 # load annotation and data
-anno <- readRDS("./input/sample_annotation.rds")
+anno <- readRDS("./input/sample_annotation_extended.rds")
 betas <- readRDS(file = "./input/betas_filtered.rds")
 
 # keep only primaries (PDAC, ACC, SPN, PanNET) and normal pancreas
@@ -235,7 +235,7 @@ xgb_cv <- xgb.cv(params = xgb_params, data = t(train_data), label = train_labels
                  showsd = TRUE, stratified = TRUE, print_every_n = 10, 
                  early_stop_round = 20, maximize = FALSE, prediction = TRUE)
 
-gb_model <- xgboost(data = t(train_data), 
+xgb_model <- xgboost(data = t(train_data), 
                     label = train_labels_0based, 
                     nrounds = 100,
                     subsample = 0.7, 
@@ -263,7 +263,6 @@ pred_nn_classes <- apply(pred_nn_scores, 1, function(x){
 })
 
 #merge levels of training and test dataset together and print the confusionMatrix
-u <- union(pred_nn_scores, pred_nn_classes)
 table(prediction = pred_nn_classes, actual = test_anno$label) %>% 
   caret::confusionMatrix()
 
@@ -284,7 +283,7 @@ table(prediction = pred_rf_classes, actual = test_anno$label) %>%
 # XGBOOST 
 
 # scores
-pred_xgb_scores <- predict(object = gb_model, newdata = t(test_data))
+pred_xgb_scores <- predict(object = xgb_model, newdata = t(test_data))
 pred_xgb_scores <- pred_xgb_scores %>% 
   matrix(nrow = 5)
 pred_xgb_scores <- t(pred_xgb_scores)
@@ -317,22 +316,49 @@ test_anno %>%
   pivot_longer(cols = everything()) %>% 
   group_by(name) %>% 
   summarise(accuracy = sum(value)/n()) %>% 
-  ggplot(aes(accuracy, name, fill = name)) +
+  ggplot(aes(name, accuracy, fill = name)) +
   geom_col(width = 0.7) +
   scale_fill_manual(values = branded_colors2) +
-  theme_bw(base_size = 20) +
+  theme_bw(base_size = 30) +
   theme(legend.position = "none") +
-  labs(y = NULL, x = "Accuracy (test cohort)") +
-  xlim(0, 1)
+  labs(x = NULL, y = "Accuracy (test cohort)") +
+  ylim(0, 1)
 
 test_anno %>% 
   mutate(nn_corr = as.integer(label == pred_nn)) %>% 
   group_by(label) %>% 
   summarise(accuracy = sum(nn_corr) / n()) %>% 
-  ggplot(aes(accuracy, label, fill = label)) +
+  ggplot(aes(label, accuracy, fill = label)) +
   geom_col(width = 0.7) +
   scale_fill_manual(values = branded_colors) +
-  theme_bw(base_size = 20) +
-  labs(x = "Accuracy (test cohort)", y = NULL)
+  theme_bw(base_size = 30) +
+  theme(legend.position = "none") +
+  labs(x = NULL, y = "Accuracy (test cohort)")
 
+
+
+# project results onto UMAP ------------
+
+class_results <- test_anno %>% 
+  select(array_id, starts_with("pred"))
+
+anno_ext <- left_join(anno, class_results)
+anno_ext <- anno_ext %>% 
+  mutate(dataset = ifelse(is.na(pred_nn), "train", "test"))
+
+anno_ext %>% 
+  mutate(correct = as.integer(label == pred_nn)) %>% 
+  ggplot(aes(umap_x, umap_y, colour = dataset)) +
+  geom_point(size = 3) +
+  scale_colour_manual(values = branded_colors2) +
+  theme_classic(base_size = 30) +
+  labs(x = NULL, y = "Accuracy (test cohort)")
+
+
+anno_ext %>% 
+  mutate(correct = as.factor(label == pred_nn)) %>% 
+  ggplot(aes(umap_x, umap_y, colour = correct)) +
+  geom_point(size = 3, alpha = 0.8) +
+  theme_classic(base_size = 30) +
+  labs(x = NULL, y = "Accuracy (test cohort)")
 

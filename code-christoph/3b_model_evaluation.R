@@ -56,9 +56,9 @@ performance_cutoff %>%
   ggplot(aes(cutoff, value, color = statistic)) +
   geom_point(size = 3) +
   geom_line() +
-  ylim(c(0.5, 1)) +
   scale_color_manual(values = branded_colors) +
-  theme_bw(base_size = 20) +
+  theme_bw(base_size = 30) +
+  theme(legend.position = "none") +
   facet_grid(cols = vars(method)) +
   labs(x = "Cutoff", y = "Accuracy/Predictable (%)")
 

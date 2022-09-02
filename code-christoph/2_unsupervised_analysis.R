@@ -11,7 +11,7 @@ library(tidyverse)
 library(Rtsne)
 library(umap)
 
-source("./code/branded_colors.R")
+source("./code-christoph/0_branded_colors.R")
 
 
 # load sample annotation and filter --------------------------------------------
@@ -49,7 +49,7 @@ rm(absolute, estimate, betas)
 # perform dimensionlity reduction ----------------------------------------------
 
 
-betas <- readRDS("./input/betas_probes_filtered.rds")
+betas <- readRDS("./input/betas_filtered.rds")
 betas <- betas[, anno$array_id]
 any(is.na(betas))
 
@@ -64,11 +64,14 @@ betas_topvar <- betas[probes_topvar, ]
 saveRDS(object = betas_topvar, file = "./input/betas_filtered_topvar.rds")
 
 # run UMAP
-umap <- umap(d = t(betas_topvar))
+umap <- umap(d = t(betas_topvar), ret_model = TRUE)
+#saveRDS(object = umap, file = "./input/umap_model.rds")
 
 anno <- anno %>% 
   mutate(umap_x = umap$layout[, 1], 
          umap_y = umap$layout[, 2])
+#saveRDS(object = anno, file = "./input/sample_annotation_extended.rds")
+
 
 # plot UMAP
 anno %>% 
@@ -83,7 +86,7 @@ anno %>%
 
 anno %>% 
   group_by(label) %>% 
-  summarise(n = n()) %>% 
+  summarise(n = n())# %>% 
   ggplot(aes(label, n, fill = label)) +
   geom_col() +
   theme_classic(base_size = 20) +
@@ -112,6 +115,7 @@ anno %>%
   theme(legend.position = "none") +
   scale_colour_manual(values = branded_colors) +
   labs(x = NULL, y = "Tumor Purity")
+
 
 
 
