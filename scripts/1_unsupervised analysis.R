@@ -7,19 +7,21 @@ library(tidyverse)
 library(Rtsne)
 library(umap)
 
-# load data and annotation 
-betas <- readRDS("./data/methylation_data.rds")
-anno <- readRDS("./00_christoph_annotation/sample_annotation.rds")
+# load sample annotation and filter --------------------------------------------
 
-# keep only primaries of PNETs, ACCs and SPNs
+anno <- readRDS("./data/sample_annotation.rds")
+
+# keep primaries (PanNET, ACC, SPN and PDAC) and normal pancreas, filter out UMC
 anno <- anno %>% 
-  filter(tumorType %in% c("PanNET", "ACC", "SPN")) %>% 
-  filter(location == "primary")
-
-# filter for samples where annotation is available
-betas <- betas[, anno$arrayId]
+  filter(tumorType %in% c("PanNET", "ACC", "SPN", "PDAC", "normal", "acc normal")) %>% 
+  filter(location %in% c("primary", "pancreas")) %>% 
+  filter(source != "UMCU")
 
 ### estimate tumor purity ------------------------------------------------------
+
+# load unfiltered beta values
+betas <- readRDS("./data/methylation_data.rds")
+betas <- betas[1:238,anno$arrayId]
 
 # get purity estimates 
 absolute <- RFpurify::predict_purity_betas(betas = betas, method = "ABSOLUTE")
@@ -33,25 +35,39 @@ anno <- anno %>%
 
 # make some basic plots
 anno %>% 
+  ggplot(aes(tumorType)) +
+  geom_bar(aes(fill = source)) +
+  scale_fill_manual(values = branded_colors) +
+  theme_bw(base_size = 18)
+ggsave("Figure 1A_count tumorType per source.png", path= "./output/")
+
+anno %>% 
   ggplot(aes(absolute, estimate)) +
   geom_point(size = 3) +
   geom_smooth() +
   theme_bw(base_size = 18) +
-  scale_colour_manual(values = branded_colors) +
   labs(x = "Purity (ABSOLUTE)", y = "Purity (ESTIMATE)")
 
 anno %>% 
   ggplot(aes(tumorType, estimate, col = tumorType)) +
   geom_boxplot(outlier.shape = NA) +
-  geom_jitter() +
+  geom_point(aes(shape=tumorType), position = position_jitterdodge(0.5), alpha=0.9) +
+  #geom_jitter(aes(fill=tumorType, shape=tumorType)) +
+  scale_shape_manual(values = c(21, 22, 23, 24)) +
   scale_colour_manual(values = branded_colors) +
   theme_bw(base_size = 18)
+ggsave("Figure 1D_tumor purity per tumorType.png", path= "./output/")
 
 anno %>% 
   ggplot(aes(tumorType, avg_beta, col = tumorType)) +
   geom_boxplot(outlier.shape = NA) +
   geom_jitter() +
+  scale_colour_manual(values = branded_colors) +
   theme_bw(base_size = 18)
+ggsave("Figure 1C_average methylation.png", path= "./output/")
+
+# clean up
+rm(absolute, estimate, betas)
 
 
 
@@ -101,7 +117,99 @@ ggsave("UMAP-all.png", path= "./output/")
 
 
 
+# perform dimensionlity reduction ----------------------------------------------
 
+
+betas <- readRDS("./input/betas_filtered.rds")
+betas <- betas[, anno$array_id]
+any(is.na(betas))
+
+# add avg. methylation to annotation
+anno <- anno %>% 
+  add_column(avg_beta = apply(betas, 2, mean, na.rm = TRUE))
+
+# determine 5000 most variable probes across dataset and subset beta values
+probe_var <- apply(betas, 1, var)
+probes_topvar <- order(probe_var, decreasing = TRUE)[1:10000]
+betas_topvar <- betas[probes_topvar, ]
+saveRDS(object = betas_topvar, file = "./input/betas_filtered_topvar.rds")
+
+# run UMAP
+umap <- umap(d = t(betas_topvar), ret_model = TRUE)
+#saveRDS(object = umap, file = "./input/umap_model.rds")
+
+anno <- anno %>% 
+  mutate(umap_x = umap$layout[, 1], 
+         umap_y = umap$layout[, 2])
+#saveRDS(object = anno, file = "./input/sample_annotation_extended.rds")
+
+
+# plot UMAP
+anno %>% 
+  ggplot(aes(umap_x, umap_y, col = label)) +
+  geom_point(size = 3) +
+  theme_classic(base_size = 20) +
+  scale_color_manual(values = branded_colors) +
+  labs(x = "UMAP 1", y = "UMAP 2")
+
+
+### plot basic statistics for the data set -------------------------------------
+
+anno %>% 
+  group_by(label) %>% 
+  summarise(n = n())# %>% 
+ggplot(aes(label, n, fill = label)) +
+  geom_col() +
+  theme_classic(base_size = 20) +
+  theme(legend.position = "none") +
+  scale_fill_manual(values = branded_colors) +
+  labs(x = NULL, y = "Number of Cases")
+
+
+# average methylation
+anno %>% 
+  ggplot(aes(label, avg_beta, col = label)) +
+  geom_boxplot(lwd = 1, outlier.shape = NA) +
+  geom_jitter(width = 0.1) +
+  theme_classic(base_size = 20) +
+  theme(legend.position = "none") +
+  scale_colour_manual(values = branded_colors) +
+  labs(x = NULL, y = "Average Methylation (beta)")
+
+
+# tumor purity
+anno %>% 
+  ggplot(aes(label, absolute, col = label)) +
+  geom_boxplot(lwd = 1, outlier.shape = NA) +
+  geom_jitter(width = 0.1) +
+  theme_classic(base_size = 20) +
+  theme(legend.position = "none") +
+  scale_colour_manual(values = branded_colors) +
+  labs(x = NULL, y = "Tumor Purity")
+
+
+
+
+
+### TEST GROUNDS --------------
+
+umap2 <- umap(d = betas_topvar)
+plot(umap2$layout[, 1], umap2$layout[, 2])
+test <- apply(betas_topvar, 1, function(x) tapply(x, INDEX = anno$label, FUN = mean, simplify = TRUE)) %>% t %>% as_tibble
+test <- test %>% mutate(
+  umap_x = umap2$layout[, 1], 
+  umap_y = umap2$layout[, 2]
+)
+
+test %>% 
+  pivot_longer(cols = 1:5, names_to = "label", values_to = "beta") %>% 
+  filter(!label == "NORM") %>% 
+  ggplot(aes(umap_x, umap_y, col = beta)) +
+  geom_point() +
+  scale_color_viridis_c() +
+  theme_classic(base_size = 20) +
+  labs(x = "UMAP 1", y = "UMAP 2") +
+  facet_wrap(facets = vars(label))
 
 
 
