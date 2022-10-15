@@ -1,5 +1,5 @@
 
-
+# get control probes ------------------------------------------------
 getControlBeta <- function(rgSet, 
                            controls = "BISULFITE CONVERSION I",
                                         sampNames = NULL) {

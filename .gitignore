@@ -3,12 +3,7 @@
 ./input
 ./data
 ./presentations
-01_Load&Normalize/*
-02_Merge/*
 03_TumorPurity/*
-04_RandomForest/*
-05_ELNET/*
-07_CV/*
 results/*
 data/*
 output/*
@@ -26,7 +21,3 @@ input/*
 .git_bug
 .gitbug2
 results/Thumbs.db
-Resultaten.odp
-MLDS.R
-UHC_using pearson1.pdf
-accuracy nn_model.png

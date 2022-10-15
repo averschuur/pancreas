@@ -388,7 +388,7 @@ ggsave("tSNE by split-whole cohort.png", path= "./output/")
 
 # heatmap of correlation matrix
 heat <- pheatmap::pheatmap(dr_input, 
-                   labels_row = anno$tumorType)
+                           labels_row = anno$tumorType)
 
 save_pheatmap_pdf <- function(x, filename, width=30, height=7) {
   stopifnot(!missing(x))

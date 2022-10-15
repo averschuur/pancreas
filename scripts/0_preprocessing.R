@@ -3,10 +3,7 @@
 library(tidyverse)
 library(minfi)
 
-
-
 ### Prepare methylation data ---------------------------------------
-
 idats <- list.files(path = "./input/ALL IDATS",
                     full.names = TRUE, 
                     pattern = "_Grn.idat")
@@ -21,8 +18,10 @@ idats450k <- idats[fileSizes < 10000000]
 arrayRawEpic <- read.metharray(basenames = idatsEpic, force = TRUE)
 arrayRaw450k <- read.metharray(basenames = idats450k)
 
-
-### Normalize and filter probes ------------------------------------
+idatsE <- list.files(path = "./input/2021_Endo_PDAC, Normal Pancreas/Idat Files_PDAC",
+                    full.names = TRUE, 
+                    pattern = "_Grn.idat")
+### Normalize probes -----------------------------------------------
 
 filtered450K <- arrayRaw450k %>%
   preprocessNoob(dyeMethod= "single") %>%
@@ -34,6 +33,25 @@ filteredEPIC <- arrayRawEpic %>%
   ratioConvert(what = "both", keepCN = TRUE) %>%
   mapToGenome
 
+# Extract betas
+
+betas450k <- getBeta(filtered450K)
+betasEpic <- getBeta(filteredEPIC)
+
+# merge datasets, keep probes available in both platfroms
+
+commonProbes <- intersect(rownames(betasEpic), rownames(betas450k))
+
+betas <- cbind(betasEpic[commonProbes, ], betas450k[commonProbes, ])
+
+# clean column names (remove GSM_xxx prefix)
+
+colnames(betas) <-  colnames(betas) %>%
+  str_extract(pattern = "[0-9]*_R[0-9]{2}C[0-9]{2}$")
+
+saveRDS(object = betas, file = "./data/methylation_data.rds")
+
+### Filer probes ----------------------------------------------------
 # remove any probes that have failed in one or more samples
 
 detP <- arrayRaw450k %>%
@@ -107,7 +125,7 @@ saveRDS(object = betas, file = "./data/methylation_data_filtered.rds")
 
 ### load annotation ----------------------------------------------------
 
-annoFiles <- list.files(path = "./00_christoph_annotation/cleaned/",
+annoFiles <- list.files(path = "./annotation/",
                         pattern = ".csv",
                         full.names = TRUE)
 
