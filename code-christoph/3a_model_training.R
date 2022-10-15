@@ -59,6 +59,9 @@ train_data <- betas[, train_anno$array_id]
 # select most variable probes 
 probes_var <- apply(train_data, 1, var)
 probes_topvar <- order(probes_var, decreasing = TRUE)[1:5000]
+#probes_topvar_names <- rownames(train_data)[probes_topvar]
+#saveRDS(object = probes_topvar_names, file = "./input/model_probes.RDS")
+
 
 # subset training and test data
 train_data <- betas[probes_topvar, train_anno$array_id]
@@ -181,7 +184,8 @@ fit <- nn_model %>% fit(
 nn_model %>% evaluate(t(test_data), test_labels_onehot)
 
 
-
+# save model
+save_model_hdf5(object = nn_model, filepath = "./output/model_nn.hdf5")
 
 
 
