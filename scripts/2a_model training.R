@@ -1,6 +1,6 @@
 Model training
 
-### Preparation ------------------------------------------------------------
+### Load required packages and sources ------------------------------------------------------------
 library(tidyverse)
 library(ggplot2)
 
@@ -11,15 +11,19 @@ library(xgboost)
 library(Rtsne)
 library(umap)
 
+source("./scripts/functions.R")
+source("./scripts/branded_colors.R")
+
 # load annotation and data
-anno <- readRDS("./00_annotation/sample_annotation.rds")
+anno <- readRDS("./data/sample_annotation.rds")
 betas <- readRDS(file = "./data/methylation_data_filtered.rds")
 
 # remove MACNECs and Mixed tumors
 anno <- anno %>% 
-  filter(!tumorType %in% c("MACNEC", "Mixed")) %>% 
+  filter(!tumorType %in% c("MACNEC", "Mixed", "?")) %>% 
   filter(!location %in% c("acinar cells", "alpha cells", "beta cells", 
-                          "ductal cells", "MACNEC normal"))
+                          "ductal cells", "MACNEC normal")) %>%
+  filter(!sampleName == "UMCU_ACC2")
 
 betas <- betas[, anno$arrayId]
 
@@ -27,19 +31,18 @@ betas <- betas[, anno$arrayId]
 
 # use n = 10 samples per tumor type and study for the training cohort
 train_anno <- anno %>% 
-  filter(source != "UMCU") %>% 
-  filter(tumorType %in% c("ACC", "normal", "PanNET", "SPN")) %>% 
-  filter(location %in% c("primary", "pancreas", "acc normal")) %>% 
+  filter(source != "UMCU") %>%
+  filter(location %in% c("primary", "pancreas")) %>%
+  filter(source != "yachida" | tumorType != "PanNET") %>%
   group_by(source, tumorType, location) %>% 
-  #group_by(tumorType) %>% 
   slice_head(n = 10) %>% 
   ungroup()
 
 # use rest of the data set as test cohort
 test_anno <- anno %>% 
-  filter(!arrayId %in% train_anno$arrayId)
+  anti_join(y = train_anno)
 
-# look at statistics
+# training set stats
 train_anno %>% 
   group_by(tumorType, source, location) %>%
   summarise(n = n())
@@ -87,11 +90,11 @@ all_accuracy_histories <- NULL
 # helper function for building the NN
 build_model <- function() {
   model <- keras_model_sequential() %>% 
-    layer_dense(units = 64, activation = "relu", 
+    layer_dense(units = 216, activation = "relu", 
                 input_shape = nrow(train_data)) %>% 
-    layer_dense(units = 64, activation = "relu") %>% 
-    layer_dense(units = 64, activation = "relu") %>% 
-    layer_dense(units = 4, activation = 'softmax')
+    layer_dense(units = 216, activation = "relu") %>% 
+    layer_dense(units = 36, activation = "relu") %>% 
+    layer_dense(units = 6, activation = 'softmax')
   
   model %>% compile(
     optimizer = "rmsprop", 
@@ -118,7 +121,7 @@ for (i in 1:k) {
     partial_train_labels, 
     validation_data = list(val_data, val_labels),
     epochs = num_epochs, 
-    batch_size = 4, 
+    batch_size = 6, 
     verbose = 1
   )
   
@@ -130,7 +133,7 @@ for (i in 1:k) {
 # assemble performance metrics into dataframe
 nn_stats <- tibble(
   epochs = rep(1:num_epochs, 2), 
-  measure = rep(c("accuracy", "val_accuracy"), each = 20),
+  measure = rep(c("accuracy", "val_accuracy"), each = 30),
   mean = apply(all_accuracy_histories, 1, mean), 
   sd = apply(all_accuracy_histories, 1, sd)
 )
@@ -138,15 +141,23 @@ nn_stats <- tibble(
 # check overall accuracy:
 model %>% evaluate(val_data, val_labels)
 
+nn_stats %>%
+  ggplot(aes(epochs, mean, col = measure)) +
+  geom_line(lwd = 2) +
+  theme_classic(base_size = 20) +
+  geom_ribbon(aes(x = epochs, ymin = mean-sd, ymax = mean+sd, fill = measure), alpha = 0.2) +
+  scale_colour_manual(values = branded_colors) +
+  scale_fill_manual(values = branded_colors)
+
 #### ???? what is the added value of 5-fold CV? Is there any information included in the final model?
 
 # train final model
 nn_model <- keras_model_sequential() %>% 
-  layer_dense(units = 64, activation = "relu", 
+  layer_dense(units = 216, activation = "relu", 
               input_shape = nrow(train_data)) %>% 
-  layer_dense(units = 64, activation = "relu") %>% 
-  layer_dense(units = 64, activation = "relu") %>% 
-  layer_dense(units = 4, activation = 'softmax')
+  layer_dense(units = 216, activation = "relu") %>% 
+  layer_dense(units = 36, activation = "relu") %>% 
+  layer_dense(units = 6, activation = 'softmax')
 
 nn_model %>% compile(
   optimizer = "rmsprop", 
@@ -159,7 +170,7 @@ fit <- nn_model %>% fit(
   train_labels_onehot,
   validation_data = list(t(test_data), test_labels_onehot),
   epochs = 25, 
-  batch_size = 4
+  batch_size = 6
 )
 
 # check overall accuracy:
@@ -171,6 +182,9 @@ fit
 png(file='accuracy nn_model.png', bg= "transparent")
 plot(fit)
 dev.off()
+
+# save model
+save_model_hdf5(object = nn_model, filepath = "./output/model_nn.hdf5")
 
 
 ### train random forest ----------------------------------------------------------
@@ -244,14 +258,14 @@ pred_nn_scores <- predict(object = nn_model, t(test_data))
 colnames(pred_nn_scores) <- colnames(test_labels_onehot)
 
 # classes
-pred_nn_classes <- apply(pred_nn_scores, 1, function(x){
+pred_nn_class <- apply(pred_nn_scores, 1, function(x){
   colnames(pred_nn_scores)[which.max(x)]
 })
 
-#merge levels of training and test dataset together and print the confusionMatrix
-u <- union(pred_nn_scores, pred_nn_classes)
-t <- table(prediction = pred_nn_classes, actual = test_anno$tumorType)
-confusionMatrix(t)
+# merge levels of training and test dataset together and print the confusionMatrix
+table(prediction = pred_nn_class, actual = test_anno$tumorType) %>% 
+  caret::confusionMatrix()
+
 
 
 # RANDOM FOREST
@@ -260,21 +274,21 @@ confusionMatrix(t)
 pred_rf_scores <- predict(object = rf_model, t(test_data), type = "prob")
 
 # classes
-pred_rf_classes <- predict(object = rf_model, t(test_data))
+pred_rf_class <- predict(object = rf_model, t(test_data))
 
-#merge levels of training and test dataset together and print the confusionMatrix
-u <- union(pred_rf_scores, pred_rf_classes)
-t <- table(prediction = pred_rf_classes, actual = test_anno$tumorType)
-confusionMatrix(t)
+# merge levels of training and test dataset together and print the confusionMatrix
+table(prediction = pred_rf_class, actual = test_anno$tumorType) %>% 
+  caret::confusionMatrix()
+
 
 # XGBOOST 
 
 # scores
 pred_xgb_scores <- predict(object = gb_model, newdata = t(test_data))
 pred_xgb_scores <- pred_xgb_scores %>% 
-  matrix(nrow = 4)
+  matrix(nrow = 6)
 pred_xgb_scores <- t(pred_xgb_scores)
-colnames(pred_xgb_scores) <- c("ACC", "normal", "PanNET", "SPN")
+colnames(pred_xgb_scores) <- c("ACC", "normal", "PanNET", "SPN", "PDAC", "PanNEC")
 
 # classes
 pred_xgb_class <- apply(pred_xgb_scores, 1, function(x){
@@ -282,16 +296,41 @@ pred_xgb_class <- apply(pred_xgb_scores, 1, function(x){
 })
 
 # merge levels of training and test dataset together and print the confusionMatrix
-u <- union(pred_xgb_scores, pred_xgb_class)
-t <- table(prediction = pred_xgb_class, actual = test_anno$tumorType)
-confusionMatrix(t)
+table(prediction = pred_xgb_class, actual = test_anno$tumorType) %>% 
+  caret::confusionMatrix()
+
+# add performance to annotation
+test_anno <- test_anno %>% 
+  mutate(pred_nn = pred_nn_class, 
+         pred_rf = pred_rf_class, 
+         pred_xgb = pred_xgb_class)
+
 
 
 # add performance to annotation
 test_anno <- test_anno %>% 
-  mutate(pred_nn = pred_nn_classes, 
-         pred_rf = pred_rf_classes, 
-         pred_xgb = pred_xgb_class)
+  mutate(pred_nn = pred_nn_class, 
+         pred_rf = pred_rf_class, 
+         pred_xgb = pred_xgb_class, 
+         pred_scores_nn = apply(pred_nn_scores, 1, max),
+         pred_scores_rf = apply(pred_rf_scores, 1, max), 
+         pred_scores_xgb = apply(pred_xgb_scores, 1, max))
+
+test_anno %>% 
+  mutate(nn = as.integer(label == pred_nn), 
+         rf = as.integer(label == pred_rf), 
+         xgb = as.integer(label == pred_xgb)) %>% 
+  select(nn, rf, xgb) %>% 
+  pivot_longer(cols = everything()) %>% 
+  group_by(name) %>% 
+  summarise(accuracy = sum(value)/n()) %>% 
+  ggplot(aes(name, accuracy, fill = name)) +
+  geom_col(width = 0.7) +
+  scale_fill_manual(values = branded_colors2) +
+  theme_bw(base_size = 30) +
+  theme(legend.position = "none") +
+  labs(x = NULL, y = "Accuracy (test cohort)") +
+  ylim(0, 1)
 
 test_anno %>% 
   mutate(nn = as.integer(tumorType == pred_nn), 

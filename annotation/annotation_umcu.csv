@@ -21,3 +21,4 @@ arrayId,source,sampleName,arrayType,tumorType,location
 205828590065_R02C01,UMCU,RB_ACC1,Illumina_EPIC,ACC,primary
 205832320076_R01C01,UMCU,RB_SPN1_b,Illumina_EPIC,SPN,primary
 205828590067_R04C01,UMCU,RB_SPN1,Illumina_EPIC,SPN,primary
+206601450125_R05C01,UMCU,UMCU_ACC2,Illumina_EPIC,ACC,primary
