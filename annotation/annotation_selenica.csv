@@ -1,0 +1,14 @@
+array_id,source,sample_name,platform,label,location
+202226320010_R01C01,Selenica,SPN2T,Illumina_EPIC,SPN,primary
+202226320010_R02C01,Selenica,SPN3T,Illumina_EPIC,SPN,primary
+202226320010_R03C01,Selenica,SPN4T,Illumina_EPIC,SPN,primary
+202226320010_R04C01,Selenica,SPN5T,Illumina_EPIC,SPN,primary
+202226320010_R05C01,Selenica,SPN6T,Illumina_EPIC,SPN,primary
+202226320010_R06C01,Selenica,SPN7T,Illumina_EPIC,SPN,primary
+202226320010_R07C01,Selenica,SPN8T,Illumina_EPIC,SPN,primary
+202226320010_R08C01,Selenica,SPN9T,Illumina_EPIC,SPN,primary
+202226320016_R01C01,Selenica,SPN10T,Illumina_EPIC,SPN,primary
+202226320016_R02C01,Selenica,SPN11T,Illumina_EPIC,SPN,primary
+202226320016_R03C01,Selenica,SPN12T,Illumina_EPIC,SPN,primary
+202226320016_R04C01,Selenica,SPN13T,Illumina_EPIC,SPN,primary
+202226320016_R05C01,Selenica,SPN14T,Illumina_EPIC,SPN,primary
