@@ -3,30 +3,27 @@
 library(tidyverse)
 library(minfi)
 library(paletteer)
+library(Rtsne)
 
-source("./00_christoph_code/functions.R")
-
-
-### Create custom color scale ----------------------------------------------------------
-branded_colors <- c("#f6d8ae", "#2e4057", "#da4167", "#3cdbd3", "#f4d35e", "#8d96a3")
+source("./scripts/functions.R")
+source("./scripts/0_branded_colors.R")
 
 
-# load data and annotation 
-betas <- readRDS("./data/methylation_data_filtered.rds")
-anno <- readRDS("./00_christoph_annotation/sample_annotation.rds")
+#### load data and annotation 
+anno <- readRDS("./data/sample_annotation.rds")
+betas <- readRDS(file = "./data/methylation_data_filtered.rds")
 
 # check overlapping sample types between studies
 anno %>% 
-  filter(source != "UMCU") %>%
-  filter(source != "RB") %>%
-  filter(tumorType != "MACNEC") %>%
-  #filter(location %in% c("primary", "acc normal", "pancreas")) %>% 
+  filter(!source %in% c("UMCU", "RB")) %>%
+  filter(!tumorType %in% c("MACNEC", "?", "Mixed")) %>%
+  filter(location %in% c("primary", "acc normal", "pancreas")) %>% 
   group_by(tumorType, source, location) %>% 
   summarise(n = n()) %>% 
   arrange(tumorType) %>% 
   pull(n) %>% sum
 
-#n= 209 excl UMCU and MACNEC
+#n= 204 excl UMCU and MACNEC
   
 
 ### Investigation 1: Normal pancreatic tissue, DiDomenico vs. Jakel ------------
@@ -45,7 +42,7 @@ anno_normal %>%
   theme(legend.position = "none") +
   scale_fill_manual(values = branded_colors) +
   ylim(c(0, 30))
-ggsave("No_Normal Pancreas.png", path= "./output/")
+ggsave("BatchEffect_Normal Pancreas_No.png", path= "./output/")
 
 # list idats
 idat <- list.files(path = "./input/ALL IDATS", pattern = "_Grn.idat")
@@ -73,7 +70,7 @@ anno_normal %>%
   theme(legend.position = "none") +
   labs(x = NULL, y = "Control Score") +
   scale_fill_manual(values = branded_colors)
-ggsave("Controle Score_Normal Pancreas.png", path= "./output/")
+ggsave("BatchEffect_Normal Pancreas_Controle Score.png", path= "./output/")
 
 rm(raw_normal, conv_normal)
 
@@ -95,7 +92,7 @@ betas_normal_avg %>%
   labs(x = "Beta", y = "Density") +
   scale_fill_manual(values = branded_colors) +
   theme(legend.position = "none")
-ggsave("Violin_Beta's avg_Normal Pancreas.png", path= "./output/")
+ggsave("BatchEffect_Normal Pancreas_Violin_Beta's avg.png", path= "./output/")
 
 betas_normal_avg %>% 
   sample_n(size = 30000) %>% 
@@ -105,10 +102,10 @@ betas_normal_avg %>%
   theme_bw(base_size = 28) +
   geom_abline(slope = 1, intercept = 0, col = "grey", lty = 2) +
   theme(legend.position = "none")
-ggsave("Beta's avg_Normal Pancreas.png", path= "./output/")
+ggsave("BatchEffect_Normal Pancreas_Beta's avg.png", path= "./output/")
 
 
-# perform t-test
+### perform t-test
 
 ttest <- genefilter::rowttests(x = betas_normal, fac = as.factor(anno_normal$source)) %>% 
   as_tibble(rownames = "probe")
@@ -122,8 +119,8 @@ ttest <- ttest %>%
 ttest_perm <- genefilter::rowttests(x = betas_normal, fac = as.factor(sample(anno_normal$source))) %>% 
   as_tibble(rownames = "probe")
 p_cutoff <- 0.001
-sum(ttest_perm$p.value < p_cutoff)/sum(ttest$p.value < p_cutoff) # 0.01806834
-# 0.0003796085
+sum(ttest_perm$p.value < p_cutoff)/sum(ttest$p.value < p_cutoff)
+# 0.0006957974
 
 
 # volcano plot
@@ -134,7 +131,7 @@ ttest %>%
   geom_point(alpha = 0.4, col = branded_colors[6]) +
   theme_bw(base_size = 24) +
   labs(x = "Methylation difference (beta)", y = "-log10(p-value)")
-ggsave("Volcano_T-Testg_Normal Pancreas.png", path= "./output/")
+ggsave("BatchEffect_Normal Pancreas_Volcano_T-Testg.png", path= "./output/")
 
 # show that significant beta values are enriched for low methylation 
   
@@ -145,7 +142,7 @@ ttest %>%
   geom_density(alpha = 0.2, fill = branded_colors[3]) +
   theme_bw(base_size = 24) +
   labs(x = "Avg. methylation (beta)", y = "-log10(p-value)")
-ggsave("DensityPlot_T-Test_Normal Pancreas.png", path= "./output/")
+ggsave("BatchEffect_Normal Pancreas_DensityPlot_T-Test.png", path= "./output/")
 
 
 ttest %>% 
@@ -154,7 +151,7 @@ ttest %>%
   geom_point(fill = "grey85", alpha = 0.2) +
   theme_bw(base_size = 24) +
   labs(x = "Delta (beta)", y = "-log10(p-value")
-ggsave("T-Test_Normal Pancreas.png", path= "./output/")
+ggsave("BatchEffect_Normal Pancreas_T-Test.png", path= "./output/")
 
 
 ### look at sample correlation heatmap ---------------------------------------
@@ -168,25 +165,19 @@ heat <- cor(betas_normal) %>%
   pheatmap::pheatmap(annotation_col = heatmap_anno,
                      labels_row = heatmap_anno$source, 
                      show_colnames = FALSE)
-save_pheatmap_pdf(heat, "./output/Heatmap cor_Normal Pancreas.pdf")
+save_pheatmap_pdf(heat, "./output/BatchEffect_Normal Pancreas_Heatmap cor.pdf")
 
-save_pheatmap_pdf <- function(x, filename, width=5.86, height=9.46) {
-  stopifnot(!missing(x))
-  stopifnot(!missing(filename))
-  pdf(filename, width=width, height=height)
-  grid::grid.newpage()
-  grid::grid.draw(x$gtable)
-  dev.off()
-}
 
-save_pheatmap_png(heat, "./output/Heatmap cor_Normal Pancreas.png")
 
-### Investigation 2: PanNets, DiDomenico vs. Jakel vs. Chan --------------------
-
+### Investigation 2: PanNets, DiDomenico vs. Jakel vs. Chan vs. Yachida --------------------
 
 # select (1) primary (2) PanNETs which are (3) not from UMCU
-anno_pnet <- anno %>% 
-  filter(tumorType == "PanNET" & location == "primary" & source != "UMCU")
+anno_pnet1 <- anno %>% 
+  filter(tumorType == "PanNET" & location == "primary" & !source %in% c("UMCU", "yachida"))
+
+anno_pnet2 <- anno %>% 
+  filter(tumorType == "PanNET" & location == "primary" & source == "yachida")
+
 
 # plot sample numbers per study
 anno_pnet %>% 
@@ -195,41 +186,63 @@ anno_pnet %>%
   ggplot(aes(source, n, fill = source)) +
   geom_col(width = 0.4) +
   labs(x = NULL, y = "Normal tissues (n)") +
+  scale_x_discrete(limits = c("Chan", "DiDomenico", "Jakel", "yachida"),
+                   breaks = c("Chan", "DiDomenico", "Jakel", "yachida"),
+                   labels = c("Chan", "DiDomenico", "Jakel", "Yachida")) +
   theme_bw(base_size = 28) +
-  theme(legend.position = "none") +
+  theme(axis.title.y = element_text(face = "bold", hjust = 0.5, vjust=2, size = 16),
+        axis.text = element_text(face = "bold", size = 10),
+        axis.text.y = element_text(face = "bold", size = 8),
+        legend.position = "none")+
   scale_fill_manual(values = branded_colors)
-ggsave("No_PNET.png", path= "./output/")
+ggsave("BatchEffect_PNET_No.png", path= "./output/")
+ 
 
 # list idats, read raw data
-idat_pnet <- list.files(path = "./input/ALL IDATS/", pattern = "_Grn.idat")
-file_pnet <- list.files(path = "./input/ALL IDATS/", pattern = "_Grn.idat", full.names = TRUE)
+idat_pnet1 <- list.files(path = "./input/ALL IDATS/", pattern = "_Grn.idat")
+file_pnet1 <- list.files(path = "./input/ALL IDATS/", pattern = "_Grn.idat", full.names = TRUE)
 
-file_pnet <- file_pnet[match(paste0(anno_pnet$arrayId, "_Grn.idat"), idat_pnet)]
-raw_pnet <- read.metharray(basenames = file_pnet)
+file_pnet1 <- file_pnet1[match(paste0(anno_pnet1$arrayId, "_Grn.idat"), idat_pnet1)]
+raw_pnet1 <- read.metharray(basenames = file_pnet1)
 
-rm(idat_pnet, file_pnet)
+
+idat_pnet2 <- list.files(path = "./input/Yachida_EPIC_NETNEC/Idat Files/", pattern = "_Grn.idat")
+file_pnet2 <- list.files(path = "./input/Yachida_EPIC_NETNEC/Idat Files/", pattern = "_Grn.idat", full.names = TRUE)
+
+file_pnet2 <- file_pnet2[match(paste0(anno_pnet2$arrayId, "_Grn.idat"), idat_pnet2)]
+raw_pnet2 <- read.metharray(basenames = file_pnet2, force=TRUE)
+
+rm(idat_pnet, file_pnet, idat_pnet1, file_pnet1, idat_pnet2, file_pnet2)
 
 
 # investigate QC measures 1: bisulfite conversion efficiency 
 
-conv_pnet <- getControlBeta(raw_pnet, controls = "BISULFITE CONVERSION II") %>% 
+conv_pnet2 <- getControlBeta(raw_pnet2, controls = "BISULFITE CONVERSION II") %>% 
   as_tibble() %>% 
   group_by(arrayId) %>% 
   summarise(conversion = min(value[channel == "Red"]) / max(value[channel == "Green"]))
 
-anno_pnet <- anno_pnet %>% 
-  left_join(conv_pnet)
+anno_pnet2 <- anno_pnet2 %>% 
+  left_join(conv_pnet2)
+
+anno_pnet <- rbind(anno_pnet1, anno_pnet2)
 
 #plot
 anno_pnet %>% 
   ggplot(aes(source, conversion, fill = source)) +
-  geom_boxplot(alpha = 0.6) +
+  geom_boxplot(alpha = 0.8) +
   geom_jitter(size = 2, width = 0.1) +
   theme_bw(base_size = 24) +
-  theme(legend.position = "none") +
+  theme(axis.title.y = element_text(face = "bold", hjust = 0.5, vjust=2, size = 16),
+        axis.text = element_text(face = "bold", size = 10),
+        axis.text.y = element_text(face = "bold", size = 8),
+        legend.position = "none")+
   labs(x = NULL, y = "Control Score") +
+  scale_x_discrete(limits = c("Chan", "DiDomenico", "Jakel", "yachida"),
+                   breaks = c("Chan", "DiDomenico", "Jakel", "yachida"),
+                   labels = c("Chan", "DiDomenico", "Jakel", "Yachida")) +
   scale_fill_manual(values = branded_colors)
-ggsave("Controle Score_PNET.png", path= "./output/")
+ggsave("BatchEffect_PNET_Controle Score.png", path= "./output/")
 
 # collect beta values, add avg. beta per sample to annotation
 betas_pnet <- betas[, anno_pnet$arrayId]
@@ -237,7 +250,8 @@ betas_pnet <- betas[, anno_pnet$arrayId]
 betas_pnet_avg <- tibble(
   Chan = apply(betas_pnet[, anno_pnet$source == "Chan"], 1, mean, na.rm = TRUE),
   DiDomenico = apply(betas_pnet[, anno_pnet$source == "DiDomenico"], 1, mean, na.rm = TRUE), 
-  Jakel = apply(betas_pnet[, anno_pnet$source == "Jakel"], 1, mean, na.rm = TRUE)
+  Jakel = apply(betas_pnet[, anno_pnet$source == "Jakel"], 1, mean, na.rm = TRUE),
+  Yachida = apply(betas_pnet[, anno_pnet$source == "yachida"], 1, mean, na.rm = TRUE)
 )
 
 #violin plot
@@ -246,10 +260,14 @@ betas_pnet_avg %>%
   ggplot(aes(name, value, fill = name)) +
   geom_violin(alpha = 0.8) +
   theme_bw(base_size = 24) +
-  labs(x = "Beta", y = "Density") +
-  scale_fill_manual(values = branded_colors) +
-  theme(legend.position = "none")
-ggsave("Violin_Beta's avg_PNETs.png", path= "./output/")
+  theme(axis.title.y = element_text(face = "bold", hjust = 0.5, vjust=2, size = 16),
+        axis.title.x = element_text(face = "bold", hjust = 0.5, vjust=1, size = 16),
+        axis.text = element_text(face = "bold", size = 10),
+        axis.text.y = element_text(face = "bold", size = 8),
+        legend.position = "none")+
+  labs(x = "Beta values", y = "Density") +
+  scale_fill_manual(values = branded_colors)
+ggsave("BatchEffect_PNET_Violin_Beta's avg.png", path= "./output/")
 
 
 betas_pnet_avg %>% 
@@ -258,6 +276,10 @@ betas_pnet_avg %>%
   geom_bin2d(bins = 100) +
   paletteer::scale_fill_paletteer_c("scico::tokyo") +
   theme_bw(base_size = 28) +
+  theme(axis.title.y = element_text(face = "bold", hjust = 0.5, vjust=2, size = 16),
+        axis.title.x = element_text(face = "bold", hjust = 0.5, vjust=1, size = 16),
+        axis.text = element_text(face = "bold", size = 10),
+        legend.position = "none")+
   geom_abline(slope = 1, intercept = 0, col = "grey", lty = 2) +
   theme(legend.position = "none")
 ggsave("Beta's avg_Chan-Jakel_pnet.png", path= "./output/")
@@ -269,9 +291,15 @@ anno_pnet <- anno_pnet %>%
 anno_pnet %>% 
   ggplot(aes(source, mean_beta, fill = source)) +
   geom_boxplot(alpha = 0.8) +
-  scale_fill_manual(values = branded_colors) +
-  theme_bw(base_size = 24)
-ggsave("AVG betas_PNET.png", path= "./output/")
+  theme_bw(base_size = 24) +
+  theme(axis.title.y = element_text(face = "bold", hjust = 0.5, vjust=2, size = 16),
+        axis.title.x = element_text(face = "bold", hjust = 0.5, vjust=1, size = 16),
+        axis.text = element_text(face = "bold", size = 10),
+        axis.text.y = element_text(face = "bold", size = 8),
+        legend.position = "none") +
+  labs(x = "", y = "Mean beta values") +
+  scale_fill_manual(values = branded_colors)
+ggsave("BatchEffect_PNET_AVG betas.png", path= "./output/")
 
 
 # density plot of beta value distribution
@@ -282,9 +310,10 @@ betas_pnet_avg %>%
   theme_bw(base_size = 24) +
   labs(x = "Beta", y = "Density") +
   scale_fill_manual(values = branded_colors) +
-  theme(legend.position = "none") +
-  facet_grid(rows = vars(name))
-ggsave("Density plots_PNET.png", path= "./output/")
+  theme(legend.position = "none",
+        strip.text = element_text(size = 10)) +
+  facet_grid(rows = vars(name)) 
+ggsave("BatchEffect_PNET_Density plots.png", path= "./output/")
 
 
 # t-SNE of correlation matrix
@@ -304,15 +333,18 @@ anno_pnet %>%
   ggplot(aes(umap_x, umap_y, col = source, alpha = conversion)) +
   geom_point(size = 3) +
   #geom_label(label = anno_pnet$sampleName) +
-  scale_color_manual(values = branded_colors) +
   theme_bw(base_size = 24) +
-  labs(x = "t-SNE 1", y = "t-SNE 2")
-ggsave("tSNEUMAP_PNET.png", path= "./output/")
+  theme(axis.title.y = element_text(face = "bold", hjust = 0.5, vjust=2, size = 16),
+        axis.title = element_text(face = "bold", hjust = 0.5, vjust=1, size = 16),
+        axis.text = element_text(face = "bold", size = 10),
+        legend.title=element_text(face = "bold", size=10), 
+        legend.text=element_text(size=9)) +
+  labs(x = "UMAP 1", y = "UMAP 2", alpha = "Conversion", col = "Source") +
+  scale_color_manual(labels = c("Chan", "DiDomenico", "Jakel", "Yachida"), values = branded_colors)
+ggsave("BatchEffect_PNET_UMAP.png", path= "./output/")
 
 
-pheatmap::pheatmap(cor_pnet, labels_row = anno_pnet$source, labels_col = NULL)
-
-#### this is not working:
+# t-SNE:
 tsne_pnet <- Rtsne(t(betas_pnet[sample(1:nrow(betas_pnet), size = 5000), ]), perplexity = 15)
 
 anno_pnet <- anno_pnet %>% 
@@ -322,10 +354,15 @@ anno_pnet <- anno_pnet %>%
 anno_pnet %>% 
   ggplot(aes(tsne_x, tsne_y, col = source, alpha = conversion)) +
   geom_point(size = 3) +
-  scale_color_manual(values = branded_colors) +
   theme_bw(base_size = 24) +
-  labs(x = "t-SNE 1", y = "t-SNE 2")
-ggsave("tSNE_PNET.png", path= "./output/")
+  theme(axis.title.y = element_text(face = "bold", hjust = 0.5, vjust=2, size = 16),
+        axis.title = element_text(face = "bold", hjust = 0.5, vjust=1, size = 16),
+        axis.text = element_text(face = "bold", size = 10),
+        legend.title=element_text(face = "bold", size=10), 
+        legend.text=element_text(size=9)) +
+  labs(x = "t-SNE 1", y = "t-SNE 2", alpha = "Conversion", col = "Source") +
+  scale_color_manual(labels = c("Chan", "DiDomenico", "Jakel", "Yachida"), values = branded_colors)
+ggsave("BatchEffect_PNET_tSNE.png", path= "./output/")
 
 ### look at sample correlation heatmap ---------------------------------------
 
@@ -338,13 +375,4 @@ heat <- cor(betas_pnet) %>%
   pheatmap::pheatmap(annotation_col = heatmap_anno,
                      labels_row = heatmap_anno$source, 
                      show_colnames = FALSE)
-save_pheatmap_pdf(heat, "./output/Heatmap cor_pnet.pdf")
-
-save_pheatmap_pdf <- function(x, filename, width=15, height=10) {
-  stopifnot(!missing(x))
-  stopifnot(!missing(filename))
-  pdf(filename, width=width, height=height)
-  grid::grid.newpage()
-  grid::grid.draw(x$gtable)
-  dev.off()
-}
+save_pheatmap_pdf(heat, "./output/BatchEffect_PNET_Heatmap cor.pdf")
