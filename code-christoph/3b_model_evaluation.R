@@ -82,7 +82,7 @@ test_anno %>%
   filter(method == "nn") %>% 
   ggplot(aes(source, score, col = label)) +
   geom_jitter(size = 3, width = 0.1) +
-  scale_color_manual(values = branded_colors) +
+  scale_color_manual(values = branded_colors2) +
   theme_bw(base_size = 20) +
   theme(legend.position = "top") +
   labs(x = "Score", y = NULL)

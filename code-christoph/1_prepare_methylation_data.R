@@ -1,6 +1,6 @@
 # Christoph Geisenberger
 # github: @cgeisenberger
-# last edited 28/08/2022
+# last edited 21/11/2022
 
 
 
@@ -11,23 +11,10 @@ library(minfi)
 
 
 
-### load annotation ------------------------------------------------------------
-
-anno_files <- list.files(path = "./input/annotation/cleaned/",
-                        pattern = ".csv",
-                        full.names = TRUE)
-
-anno <- lapply(as.list(anno_files), read_csv)
-
-anno <- Reduce(f = bind_rows, x = anno)
-
-saveRDS(object = anno, file = "./input/sample_annotation.rds")
-
-
-
-### prepare methylation data ---------------------------------------------------
+### prepare beta value matrices ------------------------------------------------
 
 idats <- list.files(path = "./input/idat/",
+                    recursive = TRUE,
                     full.names = TRUE, 
                     pattern = "_Grn.idat")
 
@@ -42,21 +29,30 @@ raw_epic <- read.metharray(basenames = idats_epic, force = TRUE)
 raw_450k <- read.metharray(basenames = idats_450k)
 
 
-
-### perform preprocessing and extract beta values ------------------------------
+# preprocess and extract beta values
 
 preprocessed_epic <- raw_epic %>%
   preprocessNoob(dyeMethod= "single")
+rm(raw_epic)
+saveRDS(object = preprocessed_epic, file = "./input/preprocessed_epic.rds")
+rm(preprocessed_epic)
 
 preprocessed_450k <- raw_450k %>%
   preprocessNoob(dyeMethod= "single")
+rm(raw_450k)
+saveRDS(object = preprocessed_450k, file = "./input/preprocessed_450k.rds")
+rm(preprocessed_450k)
+
+rm(idats, idats_450k, idats_epic, file_size)
 
 
+# load preprocessed data
 
-### Perform filtering: Remove chrX/chrY, probes with SNPs and multimappers -----
+preprocessed_450k <- readRDS(file = "./input/preprocessed_450k.rds")
+preprocessed_epic <- readRDS(file = "./input/preprocessed_epic.rds")
 
 
-# remove X and Y chromosomes 
+# remove probes on sex chromosomes
 
 platform_anno_450k <- getAnnotation(preprocessed_450k)
 filtered_450K <- preprocessed_450k[!platform_anno_450k$chr %in% c("chrX","chrY"), ]
@@ -67,12 +63,12 @@ filtered_epic <- preprocessed_epic[!platform_anno_epic$chr %in% c("chrX","chrY")
 rm(platform_anno_epic)
 
 
-
-# filter out SNPs
+# remove probes containing SNPs and multimappers
 
 filtered_450K <- filtered_450K %>% 
   mapToGenome %>% 
   dropLociWithSnps
+
 filtered_epic <- filtered_epic %>% 
   mapToGenome %>% 
   dropLociWithSnps
@@ -86,7 +82,6 @@ filtered_epic <- getBeta(filtered_epic)
 common_probes <- intersect(rownames(filtered_450K), rownames(filtered_epic))
 betas_filtered <- cbind(filtered_450K[common_probes, ], filtered_epic[common_probes, ])
 
-rm(raw_450k, raw_epic)
 rm(filtered_450K, filtered_epic)
 
 
@@ -100,7 +95,7 @@ rm(x_reactive)
 
 
 
-### create unfiltered beta value matrix ----------------------------------------
+# create unfiltered beta value matrix
 
 betas_450k <- getBeta(preprocessed_450k)
 betas_epic <- getBeta(preprocessed_epic)
@@ -110,25 +105,9 @@ betas <- cbind(betas_450k[common_probes, ], betas_epic[common_probes, ])
 
 rm(betas_450k, betas_epic)
 rm(preprocessed_450k, preprocessed_epic)
+rm(common_probes)
 
 
-### match sample annotation and beta value matrix ------------------------------
-
-samples_common <- intersect(anno$array_id, colnames(betas))
-
-length(samples_common) == nrow(anno)
-length(samples_common) == ncol(betas)
-
-anno <- anno %>% 
-  filter(array_id %in% samples_common)
-
-betas <- betas[, anno$array_id]
-betas_filtered <- betas_filtered[, anno$array_id]
-
-# save everything to disk
-saveRDS(object = betas, file = "./input/betas.rds")
-saveRDS(object = betas_filtered, file = "./input/betas_filtered.rds")
-saveRDS(object = anno, file = "./input/sample_annotation_incomplete.rds")
-
-
-
+# save beta values data to disk 
+saveRDS(object = betas, file = "./input/pancreas_betas_everything.rds")
+saveRDS(object = betas_filtered, file = "./input/pancreas_betas_filtered.rds")
