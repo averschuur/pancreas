@@ -56,7 +56,7 @@ performance_cutoff %>%
   ggplot(aes(cutoff, value, color = statistic)) +
   geom_point(size = 3) +
   geom_line() +
-  scale_color_manual(values = branded_colors) +
+  scale_color_manual(values = branded_colors2) +
   theme_bw(base_size = 30) +
   theme(legend.position = "none") +
   facet_grid(cols = vars(method)) +
@@ -67,8 +67,8 @@ test_anno %>%
   mutate(location = ifelse(location == "primary", "primary", "other")) %>% 
   pivot_longer(cols = starts_with("pred_scores"), names_to = "method", values_to = "score") %>% 
   mutate(method = str_extract(string = method, pattern = "[^_]*$")) %>% 
-  ggplot(aes(method, score, col = method)) +
-  geom_jitter(size = 3, width = 0.1) +
+  ggplot(aes(score, col = method)) +
+  geom_boxplot(alpha = 0.7) +
   scale_color_manual(values = branded_colors2) +
   theme_bw(base_size = 20) +
   theme(legend.position = "none") +
