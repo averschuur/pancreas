@@ -1,111 +1,111 @@
-arrayId,source,sampleName,arrayType,tumorType,location
-200325530168_R02C01,Jakel,15M,Illumina_450K,ACC,liver metastasis
-200360420003_R05C02,Jakel,19M,Illumina_450K,ACC,liver metastasis
-200360420003_R02C01,Jakel,4M,Illumina_450K,ACC,liver metastasis
-200360420007_R04C02,Jakel,41M,Illumina_450K,ACC,liver metastasis
-200360420007_R03C01,Jakel,6M,Illumina_450K,ACC,liver metastasis
-200360420008_R01C02,Jakel,8M,Illumina_450K,ACC,liver metastasis
-200325530168_R05C01,Jakel,9LK,Illumina_450K,ACC,lymph node metastasis
-200325530168_R01C01,Jakel,1LK,Illumina_450K,ACC,lymph node metastasis
-200360420003_R05C01,Jakel,12LK,Illumina_450K,ACC,lymph node metastasis
-200360420003_R01C01,Jakel,6LK,Illumina_450K,ACC,lymph node metastasis
-200360420007_R06C01,Jakel,19LK,Illumina_450K,ACC,lymph node metastasis
-200360420008_R02C01,Jakel,8LK,Illumina_450K,ACC,lymph node metastasis
-200325530168_R04C02,Jakel,20LK,Illumina_450K,MACNEC,lymph node metastasis
-200360420003_R03C02,Jakel,23LK,Illumina_450K,MACNEC,lymph node metastasis
-9769100027_R01C01,Jakel,10N,Illumina_450K,normal,acc normal
-9769100027_R04C02,Jakel,4N,Illumina_450K,normal,acc normal
-9769100027_R03C02,Jakel,5N,Illumina_450K,normal,acc normal
-9769100029_R03C02,Jakel,11N,Illumina_450K,normal,acc normal
-9769100029_R05C02,Jakel,13N,Illumina_450K,normal,acc normal
-9769100029_R01C02,Jakel,3N,Illumina_450K,normal,acc normal
-9769100029_R06C01,Jakel,6N,Illumina_450K,normal,acc normal
-9769100029_R06C02,Jakel,7N,Illumina_450K,normal,acc normal
-9769100039_R05C02,Jakel,12N,Illumina_450K,normal,acc normal
-9769100039_R03C02,Jakel,1N,Illumina_450K,normal,acc normal
-9769100039_R01C02,Jakel,8N,Illumina_450K,normal,acc normal
-9769100039_R05C01,Jakel,9N,Illumina_450K,normal,acc normal
-200325530168_R03C01,Jakel,ACC K21 N,Illumina_450K,normal,acc normal
-200325530168_R01C02,Jakel,ACC K25 N,Illumina_450K,normal,acc normal
-200360420003_R03C01,Jakel,ACC K22 N,Illumina_450K,normal,acc normal
-200360420003_R01C02,Jakel,ACC K26 N,Illumina_450K,normal,acc normal
-200360420007_R06C02,Jakel,ACC K2 N,Illumina_450K,normal,acc normal
-200360420007_R01C01,Jakel,ACC K23 N,Illumina_450K,normal,acc normal
-200360420007_R05C01,Jakel,ACC K24 N,Illumina_450K,normal,acc normal
-200360420007_R02C02,Jakel,ACC K27 N,Illumina_450K,normal,acc normal
-200360420007_R05C02,Jakel,ACC K28 N,Illumina_450K,normal,acc normal
-200360420008_R04C01,Jakel,ACC K1 N,Illumina_450K,normal,acc normal
-9721366130_R04C01,Jakel,acinar,Illumina_450K,normal,acinar cells
-7990895122_R02C01,Jakel,Alpha1,Illumina_450K,normal,alpha cells
-7990895122_R05C01,Jakel,Alpha3,Illumina_450K,normal,alpha cells
-7990895122_R01C01,Jakel,Beta1,Illumina_450K,normal,beta cells
-7990895122_R01C02,Jakel,Beta2,Illumina_450K,normal,beta cells
-7990895122_R04C01,Jakel,Beta3,Illumina_450K,normal,beta cells
-7990895088_R06C02,Jakel,duct,Illumina_450K,normal,ductal cells
-9855358054_R02C02,Jakel,21N,Illumina_450K,normal,MACNEC normal
-9855358054_R05C01,Jakel,22N,Illumina_450K,normal,MACNEC normal
-9855358054_R03C01,Jakel,23N,Illumina_450K,normal,MACNEC normal
-9769100027_R02C02,Jakel,N1N,Illumina_450K,normal,pancreas
-9769100027_R05C01,Jakel,N4N,Illumina_450K,normal,pancreas
-9769100029_R05C01,Jakel,N3N,Illumina_450K,normal,pancreas
-9769100029_R02C02,Jakel,N6N,Illumina_450K,normal,pancreas
-9769100039_R03C01,Jakel,N2N,Illumina_450K,normal,pancreas
-9769100039_R04C01,Jakel,N5N,Illumina_450K,normal,pancreas
-9769100027_R06C02,Jakel,11T,Illumina_450K,ACC,primary
-9769100027_R04C01,Jakel,13T,Illumina_450K,ACC,primary
-9769100027_R05C02,Jakel,15T,Illumina_450K,ACC,primary
-9769100027_R02C01,Jakel,16T,Illumina_450K,ACC,primary
-9769100027_R01C02,Jakel,19T,Illumina_450K,ACC,primary
-9769100027_R06C01,Jakel,4T,Illumina_450K,ACC,primary
-9769100027_R03C01,Jakel,5T,Illumina_450K,ACC,primary
-9769100029_R03C01,Jakel,12T,Illumina_450K,ACC,primary
-9769100029_R04C02,Jakel,17T,Illumina_450K,ACC,primary
-9769100029_R01C01,Jakel,3T,Illumina_450K,ACC,primary
-9769100029_R02C01,Jakel,6T,Illumina_450K,ACC,primary
-9769100029_R04C01,Jakel,7T,Illumina_450K,ACC,primary
-9769100039_R06C01,Jakel,10T,Illumina_450K,ACC,primary
-9769100039_R06C02,Jakel,14T,Illumina_450K,ACC,primary
-9769100039_R01C01,Jakel,18T,Illumina_450K,ACC,primary
-9769100039_R04C02,Jakel,1T,Illumina_450K,ACC,primary
-9769100039_R02C02,Jakel,8T,Illumina_450K,ACC,primary
-9769100039_R02C01,Jakel,9T,Illumina_450K,ACC,primary
-200325530168_R02C02,Jakel,ACC K13 T,Illumina_450K,ACC,primary
-200325530168_R06C02,Jakel,ACC K18 T,Illumina_450K,ACC,primary
-200325530168_R06C01,Jakel,ACC K2 T,Illumina_450K,ACC,primary
-200325530168_R05C02,Jakel,ACC K4 T,Illumina_450K,ACC,primary
-200325530168_R03C02,Jakel,ACC K5 T,Illumina_450K,ACC,primary
-200325530168_R04C01,Jakel,ACC K9 T,Illumina_450K,ACC,primary
-200360420003_R04C01,Jakel,ACC K10 T,Illumina_450K,ACC,primary
-200360420003_R02C02,Jakel,ACC K14 T,Illumina_450K,ACC,primary
-200360420003_R04C02,Jakel,ACC K6 T,Illumina_450K,ACC,primary
-200360420003_R06C02,Jakel,ACC K7 T,Illumina_450K,ACC,primary
-200360420003_R06C01,Jakel,ACC K8 T,Illumina_450K,ACC,primary
-200360420007_R02C01,Jakel,ACC K1 T,Illumina_450K,ACC,primary
-200360420007_R04C01,Jakel,ACC K11 T,Illumina_450K,ACC,primary
-200360420007_R03C02,Jakel,ACC K19 T,Illumina_450K,ACC,primary
-200360420007_R01C02,Jakel,ACC K3 T,Illumina_450K,ACC,primary
-200360420008_R03C01,Jakel,ACC K12 T,Illumina_450K,ACC,primary
-200360420008_R06C01,Jakel,ACC K15 T,Illumina_450K,ACC,primary
-200360420008_R05C01,Jakel,ACC K16 T,Illumina_450K,ACC,primary
-200360420008_R01C01,Jakel,ACC K20 T,Illumina_450K,ACC,primary
-9855358054_R01C01,Jakel,20T,Illumina_450K,MACNEC,primary
-9855358054_R02C01,Jakel,21T,Illumina_450K,MACNEC,primary
-9855358054_R04C01,Jakel,22T,Illumina_450K,MACNEC,primary
-9855358054_R05C02,Jakel,23T,Illumina_450K,MACNEC,primary
-9855358054_R06C01,Jakel,24T,Illumina_450K,PanNET,primary
-9855358054_R01C02,Jakel,25T,Illumina_450K,PanNET,primary
-9855358054_R03C02,Jakel,26T,Illumina_450K,PanNET,primary
-9855358054_R04C02,Jakel,27T,Illumina_450K,PanNET,primary
-9855358054_R06C02,Jakel,28T,Illumina_450K,PanNET,primary
-9855358055_R01C01,Jakel,29T,Illumina_450K,PanNET,primary
-9855358055_R02C01,Jakel,30T,Illumina_450K,PanNET,primary
-9855358055_R03C01,Jakel,31T,Illumina_450K,PanNET,primary
-9855358055_R04C01,Jakel,32T,Illumina_450K,PanNET,primary
-9855358055_R05C01,Jakel,33T,Illumina_450K,PanNET,primary
-9855358055_R06C01,Jakel,34T,Illumina_450K,PanNET,primary
-9855358055_R01C02,Jakel,35T,Illumina_450K,PanNET,primary
-9855358055_R02C02,Jakel,36T,Illumina_450K,PanNET,primary
-9855358055_R03C02,Jakel,37T,Illumina_450K,PanNET,primary
-9855358055_R04C02,Jakel,38T,Illumina_450K,PanNET,primary
-9855358055_R05C02,Jakel,39T,Illumina_450K,PanNET,primary
-9855358055_R06C02,Jakel,40T,Illumina_450K,PanNET,primary
+array_id,source,sample_name,platform,label,location
+200325530168_R02C01,Jakel,15M,Illumina_450k,ACC,liver metastasis
+200360420003_R05C02,Jakel,19M,Illumina_450k,ACC,liver metastasis
+200360420003_R02C01,Jakel,4M,Illumina_450k,ACC,liver metastasis
+200360420007_R04C02,Jakel,41M,Illumina_450k,ACC,liver metastasis
+200360420007_R03C01,Jakel,6M,Illumina_450k,ACC,liver metastasis
+200360420008_R01C02,Jakel,8M,Illumina_450k,ACC,liver metastasis
+200325530168_R05C01,Jakel,9LK,Illumina_450k,ACC,lymph node metastasis
+200325530168_R01C01,Jakel,1LK,Illumina_450k,ACC,lymph node metastasis
+200360420003_R05C01,Jakel,12LK,Illumina_450k,ACC,lymph node metastasis
+200360420003_R01C01,Jakel,6LK,Illumina_450k,ACC,lymph node metastasis
+200360420007_R06C01,Jakel,19LK,Illumina_450k,ACC,lymph node metastasis
+200360420008_R02C01,Jakel,8LK,Illumina_450k,ACC,lymph node metastasis
+200325530168_R04C02,Jakel,20LK,Illumina_450k,MACNEC,lymph node metastasis
+200360420003_R03C02,Jakel,23LK,Illumina_450k,MACNEC,lymph node metastasis
+9769100027_R01C01,Jakel,10N,Illumina_450k,NORM_OTHER,acc normal
+9769100027_R04C02,Jakel,4N,Illumina_450k,NORM_OTHER,acc normal
+9769100027_R03C02,Jakel,5N,Illumina_450k,NORM_OTHER,acc normal
+9769100029_R03C02,Jakel,11N,Illumina_450k,NORM_OTHER,acc normal
+9769100029_R05C02,Jakel,13N,Illumina_450k,NORM_OTHER,acc normal
+9769100029_R01C02,Jakel,3N,Illumina_450k,NORM_OTHER,acc normal
+9769100029_R06C01,Jakel,6N,Illumina_450k,NORM_OTHER,acc normal
+9769100029_R06C02,Jakel,7N,Illumina_450k,NORM_OTHER,acc normal
+9769100039_R05C02,Jakel,12N,Illumina_450k,NORM_OTHER,acc normal
+9769100039_R03C02,Jakel,1N,Illumina_450k,NORM_OTHER,acc normal
+9769100039_R01C02,Jakel,8N,Illumina_450k,NORM_OTHER,acc normal
+9769100039_R05C01,Jakel,9N,Illumina_450k,NORM_OTHER,acc normal
+200325530168_R03C01,Jakel,ACC K21 N,Illumina_450k,NORM_OTHER,acc normal
+200325530168_R01C02,Jakel,ACC K25 N,Illumina_450k,NORM_OTHER,acc normal
+200360420003_R03C01,Jakel,ACC K22 N,Illumina_450k,NORM_OTHER,acc normal
+200360420003_R01C02,Jakel,ACC K26 N,Illumina_450k,NORM_OTHER,acc normal
+200360420007_R06C02,Jakel,ACC K2 N,Illumina_450k,NORM_OTHER,acc normal
+200360420007_R01C01,Jakel,ACC K23 N,Illumina_450k,NORM_OTHER,acc normal
+200360420007_R05C01,Jakel,ACC K24 N,Illumina_450k,NORM_OTHER,acc normal
+200360420007_R02C02,Jakel,ACC K27 N,Illumina_450k,NORM_OTHER,acc normal
+200360420007_R05C02,Jakel,ACC K28 N,Illumina_450k,NORM_OTHER,acc normal
+200360420008_R04C01,Jakel,ACC K1 N,Illumina_450k,NORM_OTHER,acc normal
+9721366130_R04C01,Jakel,acinar,Illumina_450k,NORM_OTHER,acinar cells
+7990895122_R02C01,Jakel,Alpha1,Illumina_450k,NORM_OTHER,alpha cells
+7990895122_R05C01,Jakel,Alpha3,Illumina_450k,NORM_OTHER,alpha cells
+7990895122_R01C01,Jakel,Beta1,Illumina_450k,NORM_OTHER,beta cells
+7990895122_R01C02,Jakel,Beta2,Illumina_450k,NORM_OTHER,beta cells
+7990895122_R04C01,Jakel,Beta3,Illumina_450k,NORM_OTHER,beta cells
+7990895088_R06C02,Jakel,duct,Illumina_450k,NORM_OTHER,ductal cells
+9855358054_R02C02,Jakel,21N,Illumina_450k,NORM_OTHER,MACNEC normal
+9855358054_R05C01,Jakel,22N,Illumina_450k,NORM_OTHER,MACNEC normal
+9855358054_R03C01,Jakel,23N,Illumina_450k,NORM_OTHER,MACNEC normal
+9769100027_R02C02,Jakel,N1N,Illumina_450k,NORM,pancreas
+9769100027_R05C01,Jakel,N4N,Illumina_450k,NORM,pancreas
+9769100029_R05C01,Jakel,N3N,Illumina_450k,NORM,pancreas
+9769100029_R02C02,Jakel,N6N,Illumina_450k,NORM,pancreas
+9769100039_R03C01,Jakel,N2N,Illumina_450k,NORM,pancreas
+9769100039_R04C01,Jakel,N5N,Illumina_450k,NORM,pancreas
+9769100027_R06C02,Jakel,11T,Illumina_450k,ACC,primary
+9769100027_R04C01,Jakel,13T,Illumina_450k,ACC,primary
+9769100027_R05C02,Jakel,15T,Illumina_450k,ACC,primary
+9769100027_R02C01,Jakel,16T,Illumina_450k,ACC,primary
+9769100027_R01C02,Jakel,19T,Illumina_450k,ACC,primary
+9769100027_R06C01,Jakel,4T,Illumina_450k,ACC,primary
+9769100027_R03C01,Jakel,5T,Illumina_450k,ACC,primary
+9769100029_R03C01,Jakel,12T,Illumina_450k,ACC,primary
+9769100029_R04C02,Jakel,17T,Illumina_450k,ACC,primary
+9769100029_R01C01,Jakel,3T,Illumina_450k,ACC,primary
+9769100029_R02C01,Jakel,6T,Illumina_450k,ACC,primary
+9769100029_R04C01,Jakel,7T,Illumina_450k,ACC,primary
+9769100039_R06C01,Jakel,10T,Illumina_450k,ACC,primary
+9769100039_R06C02,Jakel,14T,Illumina_450k,ACC,primary
+9769100039_R01C01,Jakel,18T,Illumina_450k,ACC,primary
+9769100039_R04C02,Jakel,1T,Illumina_450k,ACC,primary
+9769100039_R02C02,Jakel,8T,Illumina_450k,ACC,primary
+9769100039_R02C01,Jakel,9T,Illumina_450k,ACC,primary
+200325530168_R02C02,Jakel,ACC K13 T,Illumina_450k,ACC,primary
+200325530168_R06C02,Jakel,ACC K18 T,Illumina_450k,ACC,primary
+200325530168_R06C01,Jakel,ACC K2 T,Illumina_450k,ACC,primary
+200325530168_R05C02,Jakel,ACC K4 T,Illumina_450k,ACC,primary
+200325530168_R03C02,Jakel,ACC K5 T,Illumina_450k,ACC,primary
+200325530168_R04C01,Jakel,ACC K9 T,Illumina_450k,ACC,primary
+200360420003_R04C01,Jakel,ACC K10 T,Illumina_450k,ACC,primary
+200360420003_R02C02,Jakel,ACC K14 T,Illumina_450k,ACC,primary
+200360420003_R04C02,Jakel,ACC K6 T,Illumina_450k,ACC,primary
+200360420003_R06C02,Jakel,ACC K7 T,Illumina_450k,ACC,primary
+200360420003_R06C01,Jakel,ACC K8 T,Illumina_450k,ACC,primary
+200360420007_R02C01,Jakel,ACC K1 T,Illumina_450k,ACC,primary
+200360420007_R04C01,Jakel,ACC K11 T,Illumina_450k,ACC,primary
+200360420007_R03C02,Jakel,ACC K19 T,Illumina_450k,ACC,primary
+200360420007_R01C02,Jakel,ACC K3 T,Illumina_450k,ACC,primary
+200360420008_R03C01,Jakel,ACC K12 T,Illumina_450k,ACC,primary
+200360420008_R06C01,Jakel,ACC K15 T,Illumina_450k,ACC,primary
+200360420008_R05C01,Jakel,ACC K16 T,Illumina_450k,ACC,primary
+200360420008_R01C01,Jakel,ACC K20 T,Illumina_450k,ACC,primary
+9855358054_R01C01,Jakel,20T,Illumina_450k,MACNEC,primary
+9855358054_R02C01,Jakel,21T,Illumina_450k,MACNEC,primary
+9855358054_R04C01,Jakel,22T,Illumina_450k,MACNEC,primary
+9855358054_R05C02,Jakel,23T,Illumina_450k,MACNEC,primary
+9855358054_R06C01,Jakel,24T,Illumina_450k,PanNET,primary
+9855358054_R01C02,Jakel,25T,Illumina_450k,PanNET,primary
+9855358054_R03C02,Jakel,26T,Illumina_450k,PanNET,primary
+9855358054_R04C02,Jakel,27T,Illumina_450k,PanNET,primary
+9855358054_R06C02,Jakel,28T,Illumina_450k,PanNET,primary
+9855358055_R01C01,Jakel,29T,Illumina_450k,PanNET,primary
+9855358055_R02C01,Jakel,30T,Illumina_450k,PanNET,primary
+9855358055_R03C01,Jakel,31T,Illumina_450k,PanNET,primary
+9855358055_R04C01,Jakel,32T,Illumina_450k,PanNET,primary
+9855358055_R05C01,Jakel,33T,Illumina_450k,PanNET,primary
+9855358055_R06C01,Jakel,34T,Illumina_450k,PanNET,primary
+9855358055_R01C02,Jakel,35T,Illumina_450k,PanNET,primary
+9855358055_R02C02,Jakel,36T,Illumina_450k,PanNET,primary
+9855358055_R03C02,Jakel,37T,Illumina_450k,PanNET,primary
+9855358055_R04C02,Jakel,38T,Illumina_450k,PanNET,primary
+9855358055_R05C02,Jakel,39T,Illumina_450k,PanNET,primary
+9855358055_R06C02,Jakel,40T,Illumina_450k,PanNET,primary

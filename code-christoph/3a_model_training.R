@@ -1,6 +1,6 @@
 # Christoph Geisenberger
 # github: @cgeisenberger
-# last edited 01/09/2022
+# last edited 28/11/2022
 
 
 
@@ -19,28 +19,27 @@ library(umap)
 source("./code-christoph/0_functions.R")
 source("./code-christoph/0_branded_colors.R")
 
+
 # load annotation and data
-anno <- readRDS("./input/sample_annotation_extended.rds")
-betas <- readRDS(file = "./input/betas_filtered.rds")
-
-# keep only primaries (PDAC, ACC, SPN, PanNET) and normal pancreas
-anno <- anno %>% 
-  filter(!label %in% c("MACNEC", "Mixed", "NORM_OTHER")) %>% 
-  filter(location %in% c("pancreas", "primary"))
-
+anno <- readRDS("./input/sample_annotation_umap_purity.rds")
+betas <- readRDS(file = "./input/pancreas_betas_everything.rds")
 betas <- betas[, anno$array_id]
 
 anno %>% 
   group_by(label) %>% 
   summarise(n = n())
 
+anno %>% 
+  group_by(source) %>% 
+  summarise(n = n())
+
+
+
 ### split sample into training and test cohort -----------------------
 
-
 # use n = 10 samples per tumor type and study for the training cohort
-train_anno <- anno %>% 
-  filter(source != "UMCU") %>% 
-  group_by(source, label) %>% 
+train_anno <- anno %>%
+  group_by(source, label) %>%
   slice_head(n = 10) %>% 
   ungroup()
 
@@ -59,8 +58,8 @@ train_data <- betas[, train_anno$array_id]
 # select most variable probes 
 probes_var <- apply(train_data, 1, var)
 probes_topvar <- order(probes_var, decreasing = TRUE)[1:5000]
-#probes_topvar_names <- rownames(train_data)[probes_topvar]
-#saveRDS(object = probes_topvar_names, file = "./input/model_probes.RDS")
+probes_topvar_names <- rownames(train_data)[probes_topvar]
+saveRDS(object = probes_topvar_names, file = "./output/model_probes.rds")
 
 
 # subset training and test data
@@ -81,7 +80,7 @@ test_labels_0based <- as.numeric(as.factor(test_labels)) - 1
 
 
 
-# determine groups for 5-fold cross-validation ---------------------------------
+# determine groups for 3-fold cross-validation ---------------------------------
 
 set.seed(12435)
 k <- 3
@@ -151,7 +150,7 @@ model %>% evaluate(val_data, val_labels)
 
 nn_stats %>%
   ggplot(aes(epochs, mean, col = measure)) +
-  geom_line(lwd = 2) +
+  geom_line(linewidth = 2) +
   theme_classic(base_size = 20) +
   geom_ribbon(aes(x = epochs, ymin = mean-sd, ymax = mean+sd, fill = measure), alpha = 0.2) +
   scale_colour_manual(values = branded_colors2) +
@@ -224,8 +223,7 @@ apply(rf_accuracy_histories, 2, mean)
 
 # train final model
 rf_model <- randomForest(x = t(train_data), y = as.factor(train_labels))
-rf_model
-
+saveRDS(object = rf_model, file = "./output/model_rf.rds")
 
 
 ### train gradient boosting machines (XGBoost) -----------------------------------
@@ -289,9 +287,9 @@ table(prediction = pred_rf_classes, actual = test_anno$label) %>%
 # scores
 pred_xgb_scores <- predict(object = xgb_model, newdata = t(test_data))
 pred_xgb_scores <- pred_xgb_scores %>% 
-  matrix(nrow = 5)
+  matrix(nrow = 7)
 pred_xgb_scores <- t(pred_xgb_scores)
-colnames(pred_xgb_scores) <- c("ACC", "NORM", "PanNET", "PDAC", "SPN")
+colnames(pred_xgb_scores) <- c("ACC", "NORM", "PanNEC", "PanNET", "PB", "PDAC", "SPN")
 
 # classes
 pred_xgb_class <- apply(pred_xgb_scores, 1, function(x){
@@ -334,7 +332,7 @@ test_anno %>%
   summarise(accuracy = sum(nn_corr) / n()) %>% 
   ggplot(aes(label, accuracy, fill = label)) +
   geom_col(width = 0.7) +
-  scale_fill_manual(values = branded_colors) +
+  scale_fill_manual(values = branded_colors1) +
   theme_bw(base_size = 30) +
   theme(legend.position = "none") +
   labs(x = NULL, y = "Accuracy (test cohort)")
@@ -357,7 +355,6 @@ anno_ext %>%
   scale_colour_manual(values = branded_colors2) +
   theme_classic(base_size = 30) +
   labs(x = NULL, y = "Accuracy (test cohort)")
-
 
 anno_ext %>% 
   mutate(correct = as.factor(label == pred_nn)) %>% 

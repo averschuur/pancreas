@@ -1,4 +1,4 @@
-arrayId,source,sampleName,arrayType,tumorType,location
+array_id,source,sample_name,platform,label,location
 201533570010_R06C01,UMCU,UMCU_panNET1,Illumina_EPIC,PanNET,primary
 201533570010_R07C01,UMCU,UMCU_panNET2,Illumina_EPIC,PanNET,primary
 201533570010_R08C01,UMCU,UMCU_panNET3,Illumina_EPIC,PanNET,primary
@@ -21,4 +21,3 @@ arrayId,source,sampleName,arrayType,tumorType,location
 205828590065_R02C01,UMCU,RB_ACC1,Illumina_EPIC,ACC,primary
 205832320076_R01C01,UMCU,RB_SPN1_b,Illumina_EPIC,SPN,primary
 205828590067_R04C01,UMCU,RB_SPN1,Illumina_EPIC,SPN,primary
-206601450125_R05C01,UMCU,UMCU_ACC2,Illumina_EPIC,ACC,primary
