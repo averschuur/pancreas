@@ -10,7 +10,6 @@ idats <- list.files(path = "./input/ALL IDATS",
 
 
 # infer platform from filesize
-
 fileSizes <- file.info(idats)$size
 
 idatsEpic <- idats[fileSizes > 10000000]
@@ -21,8 +20,7 @@ arrayRaw450k <- read.metharray(basenames = idats450k)
 
 
 ### Normalize probes -----------------------------------------------
-
-filtered450K <- arrayRaw450k %>%
+filteredEPIC <- arrayRaw450k %>%
   preprocessNoob(dyeMethod= "single") %>%
   ratioConvert(what = "both", keepCN = TRUE) %>%
   mapToGenome
@@ -32,8 +30,8 @@ filteredEPIC <- arrayRawEpic %>%
   ratioConvert(what = "both", keepCN = TRUE) %>%
   mapToGenome
 
-# Extract betas
 
+# Extract betas
 betas450k <- getBeta(filtered450K)
 betasEpic <- getBeta(filteredEPIC)
 
@@ -42,6 +40,7 @@ betasEpic <- getBeta(filteredEPIC)
 commonProbes <- intersect(rownames(betasEpic), rownames(betas450k))
 
 betas <- cbind(betasEpic[commonProbes, ], betas450k[commonProbes, ])
+
 
 # clean column names (remove GSM_xxx prefix)
 

@@ -1,4 +1,6 @@
-Model training
+######################
+### Model training ###
+######################
 
 ### Load required packages and sources ------------------------------------------------------------
 library(tidyverse)
@@ -20,9 +22,9 @@ betas <- readRDS(file = "./data/methylation_data_filtered.rds")
 
 # remove MACNECs and Mixed tumors
 anno <- anno %>% 
-  filter(!tumorType %in% c("MACNEC", "Mixed", "?")) %>% 
+  filter(!tumorType %in% c("MACNEC", "Mixed", "?", "Mixed_ACC_NEC", "Mixed_ACC_DA", "Mixed_ACC_DA_NEC")) %>% 
   filter(!location %in% c("acinar cells", "alpha cells", "beta cells", 
-                          "ductal cells", "MACNEC normal")) %>%
+                          "ductal cells", "MACNEC normal", "?")) %>%
   filter(!sampleName == "UMCU_ACC2")
 
 betas <- betas[, anno$arrayId]
@@ -54,6 +56,8 @@ train_data <- betas[, train_anno$arrayId]
 top_var_probes <- apply(train_data, 1, var) %>% 
   order(decreasing = TRUE)
 top_var_probes <- rownames(train_data)[top_var_probes[1:5000]]
+top_var_probes_names <- rownames(train_data)[top_var_probes]
+saveRDS(object = top_var_probes_names, file = "./input/model_probes.RDS")
 
 # subset training and test data
 train_data <- betas[top_var_probes, train_anno$arrayId]
@@ -90,11 +94,11 @@ all_accuracy_histories <- NULL
 # helper function for building the NN
 build_model <- function() {
   model <- keras_model_sequential() %>% 
-    layer_dense(units = 216, activation = "relu", 
+    layer_dense(units = 343, activation = "relu", 
                 input_shape = nrow(train_data)) %>% 
-    layer_dense(units = 216, activation = "relu") %>% 
-    layer_dense(units = 36, activation = "relu") %>% 
-    layer_dense(units = 6, activation = 'softmax')
+    layer_dense(units = 343, activation = "relu") %>% 
+    layer_dense(units = 49, activation = "relu") %>% 
+    layer_dense(units = 7, activation = 'softmax')
   
   model %>% compile(
     optimizer = "rmsprop", 
@@ -121,7 +125,7 @@ for (i in 1:k) {
     partial_train_labels, 
     validation_data = list(val_data, val_labels),
     epochs = num_epochs, 
-    batch_size = 6, 
+    batch_size = 7, 
     verbose = 1
   )
   
@@ -133,7 +137,7 @@ for (i in 1:k) {
 # assemble performance metrics into dataframe
 nn_stats <- tibble(
   epochs = rep(1:num_epochs, 2), 
-  measure = rep(c("accuracy", "val_accuracy"), each = 30),
+  measure = rep(c("accuracy", "val_accuracy"), each = 20),
   mean = apply(all_accuracy_histories, 1, mean), 
   sd = apply(all_accuracy_histories, 1, sd)
 )
@@ -153,11 +157,11 @@ nn_stats %>%
 
 # train final model
 nn_model <- keras_model_sequential() %>% 
-  layer_dense(units = 216, activation = "relu", 
+  layer_dense(units = 343, activation = "relu", 
               input_shape = nrow(train_data)) %>% 
-  layer_dense(units = 216, activation = "relu") %>% 
-  layer_dense(units = 36, activation = "relu") %>% 
-  layer_dense(units = 6, activation = 'softmax')
+  layer_dense(units = 343, activation = "relu") %>% 
+  layer_dense(units = 49, activation = "relu") %>% 
+  layer_dense(units = 7, activation = 'softmax')
 
 nn_model %>% compile(
   optimizer = "rmsprop", 
@@ -170,7 +174,7 @@ fit <- nn_model %>% fit(
   train_labels_onehot,
   validation_data = list(t(test_data), test_labels_onehot),
   epochs = 25, 
-  batch_size = 6
+  batch_size = 7
 )
 
 # check overall accuracy:
@@ -247,7 +251,7 @@ gb_model <- xgboost(data = t(train_data),
 
 ### calculate model performance in test data -------------------------------------
 test_anno %>% 
-  group_by(source) %>% 
+  group_by(tumorType) %>% 
   summarise(n = n())
 
 
@@ -263,9 +267,8 @@ pred_nn_class <- apply(pred_nn_scores, 1, function(x){
 })
 
 # merge levels of training and test dataset together and print the confusionMatrix
-table(prediction = pred_nn_class, actual = test_anno$tumorType) %>% 
+table(prediction = as.factor(pred_nn_class), actual = as.factor(pred_nn_class)) %>% 
   caret::confusionMatrix()
-
 
 
 # RANDOM FOREST
@@ -286,9 +289,9 @@ table(prediction = pred_rf_class, actual = test_anno$tumorType) %>%
 # scores
 pred_xgb_scores <- predict(object = gb_model, newdata = t(test_data))
 pred_xgb_scores <- pred_xgb_scores %>% 
-  matrix(nrow = 6)
+  matrix(nrow = 7)
 pred_xgb_scores <- t(pred_xgb_scores)
-colnames(pred_xgb_scores) <- c("ACC", "normal", "PanNET", "SPN", "PDAC", "PanNEC")
+colnames(pred_xgb_scores) <- c("ACC", "normal", "PanNEC", "PanNET", "PB", "PDAC", "SPN")
 
 # classes
 pred_xgb_class <- apply(pred_xgb_scores, 1, function(x){
@@ -299,7 +302,9 @@ pred_xgb_class <- apply(pred_xgb_scores, 1, function(x){
 table(prediction = pred_xgb_class, actual = test_anno$tumorType) %>% 
   caret::confusionMatrix()
 
-# add performance to annotation
+#####################################
+### add performance to annotation ###
+#####################################
 test_anno <- test_anno %>% 
   mutate(pred_nn = pred_nn_class, 
          pred_rf = pred_rf_class, 
@@ -317,22 +322,6 @@ test_anno <- test_anno %>%
          pred_scores_xgb = apply(pred_xgb_scores, 1, max))
 
 test_anno %>% 
-  mutate(nn = as.integer(label == pred_nn), 
-         rf = as.integer(label == pred_rf), 
-         xgb = as.integer(label == pred_xgb)) %>% 
-  select(nn, rf, xgb) %>% 
-  pivot_longer(cols = everything()) %>% 
-  group_by(name) %>% 
-  summarise(accuracy = sum(value)/n()) %>% 
-  ggplot(aes(name, accuracy, fill = name)) +
-  geom_col(width = 0.7) +
-  scale_fill_manual(values = branded_colors2) +
-  theme_bw(base_size = 30) +
-  theme(legend.position = "none") +
-  labs(x = NULL, y = "Accuracy (test cohort)") +
-  ylim(0, 1)
-
-test_anno %>% 
   mutate(nn = as.integer(tumorType == pred_nn), 
          rf = as.integer(tumorType == pred_rf), 
          xgb = as.integer(tumorType == pred_xgb)) %>% 
@@ -347,11 +336,13 @@ test_anno %>%
   labs(x = NULL, y = "Accuracy (test cohort)")
 ggsave("accuracy_models.png", path= "./output/")
 
-test_anno %>% 
-  mutate(nn_corr = as.integer(tumorType == pred_nn)) %>% 
-  group_by(tumorType) %>% 
-  summarise(sum(nn_corr) / n())
 
+x <- test_anno %>% 
+  mutate(nn_corr = as.integer(tumorType == pred_nn),
+         rf_corr = as.integer(tumorType == pred_rf),
+         xgb_corr = as.integer(tumorType == pred_xgb)) %>% 
+  group_by(tumorType) %>% 
+  summarise(sum(nn_corr) / n(), sum(rf_corr) / n(), sum(xgb_corr) / n())
 
 
 ### dimensionality reduction and UMAP/tSNE for whole cohort ----------------------
@@ -425,22 +416,35 @@ anno %>%
 ggsave("tSNE by split-whole cohort.png", path= "./output/")
 
 
-# heatmap of correlation matrix
-heat <- pheatmap::pheatmap(dr_input, 
-                   labels_row = anno$tumorType)
-
-save_pheatmap_pdf <- function(x, filename, width=30, height=7) {
-  stopifnot(!missing(x))
-  stopifnot(!missing(filename))
-  pdf(filename, width=width, height=height)
-  grid::grid.newpage()
-  grid::grid.draw(x$gtable)
-  dev.off()
-}
-save_pheatmap_pdf(heat, "T:/pathologie/PRL/Groep-Brosens/2. Anna Vera/2. ACN-SPN-NET/Pancreas-ID/output/heatmap_whole cohort.pdf")
 
 # boxplot of MVPs per tumorType #werkt niet
 train_data %>%
   ggplot(aes(train_data$tumorType, train_data[top_var_probes[3], ]), color = tumorType) +
   geom_boxplot() +
   scale_fill_manual(values = branded_colors)
+
+# project results onto UMAP ------------
+
+class_results <- test_anno %>% 
+  select(arrayId, starts_with("pred"))
+
+anno_ext <- left_join(anno, class_results)
+anno_ext <- anno_ext %>% 
+  mutate(dataset = ifelse(is.na(pred_nn), "train", "test"))
+
+anno_ext %>% 
+  mutate(correct = as.integer(label == pred_nn)) %>% 
+  ggplot(aes(umap_x, umap_y, colour = dataset)) +
+  geom_point(size = 3) +
+  scale_colour_manual(values = branded_colors) +
+  theme_classic(base_size = 30) +
+  labs(x = NULL, y = "Accuracy (test cohort)")
+
+
+anno_ext %>% 
+  mutate(correct = as.factor(label == pred_nn)) %>% 
+  ggplot(aes(umap_x, umap_y, colour = correct)) +
+  geom_point(size = 3, alpha = 0.8) +
+  theme_classic(base_size = 30) +
+  labs(x = NULL, y = "Accuracy (test cohort)")
+

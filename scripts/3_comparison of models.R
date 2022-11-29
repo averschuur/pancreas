@@ -1,2 +1,0 @@
-Comparison of models
-
