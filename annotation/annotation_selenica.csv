@@ -1,4 +1,4 @@
-array_id,source,sample_name,platform,label,location
+arrayId,source,sampleName,arrayType,tumorType,location
 202226320010_R01C01,Selenica,SPN2T,Illumina_EPIC,SPN,primary
 202226320010_R02C01,Selenica,SPN3T,Illumina_EPIC,SPN,primary
 202226320010_R03C01,Selenica,SPN4T,Illumina_EPIC,SPN,primary

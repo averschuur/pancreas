@@ -1,4 +1,4 @@
-array_id,source,sample_name,platform,label,location
+arrayId,source,sampleName,arrayType,tumorType,location
 3999720043_R05C01,Endo,GSM4699789,Illumina_450k,NORM,pancreas
 3999720043_R01C02,Endo,GSM4699790,Illumina_450k,NORM,pancreas
 3999720043_R03C02,Endo,GSM4699791,Illumina_450k,NORM,pancreas

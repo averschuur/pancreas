@@ -1,4 +1,4 @@
-array_id,source,sample_name,platform,label,location
+arrayId,source,sampleName,arrayType,tumorType,location
 200325530168_R02C01,Jakel,15M,Illumina_450k,ACC,liver metastasis
 200360420003_R05C02,Jakel,19M,Illumina_450k,ACC,liver metastasis
 200360420003_R02C01,Jakel,4M,Illumina_450k,ACC,liver metastasis

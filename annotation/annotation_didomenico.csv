@@ -1,4 +1,4 @@
-array_id,source,sample_name,platform,label,location
+arrayId,source,sampleName,arrayType,tumorType,location
 200069280190_R01C01,DiDomenico,UB01,NA,PanNET,primary
 200069280190_R02C01,DiDomenico,UB02,NA,PanNET,primary
 200069280190_R03C01,DiDomenico,UB04,NA,PanNET,primary

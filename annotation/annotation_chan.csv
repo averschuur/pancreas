@@ -1,4 +1,4 @@
-array_id,source,sample_name,platform,label,location
+arrayId,source,sampleName,arrayType,tumorType,location
 9373550141_R01C01,Chan,A_mk11,Illumina_450k,PanNET,primary
 9373550141_R02C01,Chan,A_mk12,Illumina_450k,PanNET,metastasis
 9934398017_R04C02,Chan,A_mk4,Illumina_450k,PanNET,primary
