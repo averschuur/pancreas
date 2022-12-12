@@ -63,11 +63,21 @@ conversion[,1] <- as.matrix(conversion[,1]) %>%
 
 #load annotation
 anno <- readRDS("./data/sample_annotation_extended.rds")
+
+
 # merge conversion scores with annotation
 anno <- anno %>% 
   left_join(conversion)
 saveRDS(object = anno, file= "./data/sample_annotation_conversion scores.rds")
 
+# save as csv
+anno1 <- readRDS("./data/sample_annotation.rds")
+anno1 <- anno1 %>% 
+  left_join(conversion)
+write.csv(anno1, file= "./annotation/sample_annotation_conversion scores.csv")
+
+
+# Prepare for data visualisation
 anno %>%
   mutate(reply = anno$arrayId %in% colnames(betas)) %>%
   group_by(reply, sampleName) %>%
