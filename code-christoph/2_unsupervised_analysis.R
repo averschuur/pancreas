@@ -18,15 +18,14 @@ source("./code-christoph/0_functions.R")
 
 anno <- readRDS("./input/sample_annotation.rds")
 
-# keep primaries (PanNEC, PanNET, ACC, SPN and PDAC) and normal pancreas w?o UMC
+# keep primaries (PanNEC/T, PB, ACC, SPN and PDAC) and normal pancreas w/o UMC
 anno <- anno %>% 
-  filter(label %in% c("PanNEC", "PanNET", "PB", "ACC", "SPN", "PDAC", "NORM")) %>% 
+  filter(tumorType %in% c("PanNEC", "PanNET", "PB", "ACC", "SPN", "PDAC", "NORM")) %>% 
   filter(location %in% c("primary", "pancreas")) %>% 
   filter(source != "UMCU")
 
-
 anno %>% 
-  group_by(label, source) %>% 
+  group_by(tumorType) %>% 
   summarise(n = n())
 
 
@@ -35,7 +34,7 @@ anno %>%
 
 # load unfiltered beta values
 betas <- readRDS("./input/pancreas_betas_everything.rds")
-betas <- betas[, anno$array_id]
+betas <- betas[, anno$arrayId]
 
 # get purity estimates 
 absolute <- RFpurify::predict_purity_betas(betas = betas, method = "ABSOLUTE")
@@ -51,46 +50,62 @@ rm(absolute, estimate, betas)
 
 
 
+# add bisulfite conversion scores
+
+conv_scores <- read_csv(file = "./annotation/sample_annotation_conversion_scores.csv")
+conv_scores <- conv_scores %>%
+  select(arrayId, conversion)
+
+anno <- left_join(anno, conv_scores)
+
+
+
 # dimensionality reduction -----------------------------------------------------
 
 betas <- readRDS("./input/pancreas_betas_filtered.rds")
-betas <- betas[, anno$array_id]
+betas <- betas[, anno$arrayId]
 any(is.na(betas))
 
 # add avg. methylation to annotation
 anno <- anno %>% 
   add_column(avg_beta = apply(betas, 2, mean, na.rm = TRUE))
 
-# determine 5000 most variable probes across dataset and subset beta values
+# determine most variable probes across dataset and subset beta values
 probe_var <- apply(betas, 1, var)
-probes_topvar <- rownames(betas)[order(probe_var, decreasing = TRUE)[1:5000]]
+probes_topvar <- rownames(betas)[order(probe_var, decreasing = TRUE)[1:10000]]
 betas_topvar <- betas[probes_topvar, ]
 
-saveRDS(object = probes_topvar, file = "./input/pancreas_5k_top_variable_probes.rds")
+saveRDS(object = probes_topvar, file = "./input/pancreas_top_variable_probes.rds")
 
 # run UMAP
-umap <- umap(d = t(betas_topvar), ret_model = TRUE)
-saveRDS(object = umap, file = "./input/umap_model.rds")
+umap_settings <- umap.defaults
+umap_settings$n_neighbors = 15
+umap_settings$min_dist = 0.2
+
+umap <- umap(d = t(betas_topvar), config = umap_settings, ret_model = TRUE)
 
 anno <- anno %>% 
   mutate(umap_x = umap$layout[, 1], 
          umap_y = umap$layout[, 2])
+
+saveRDS(object = umap, file = "./input/umap_model.rds")
+
 saveRDS(object = anno, file = "./input/sample_annotation_umap_purity.rds")
 
 
 # plot UMAP
 anno %>% 
-  ggplot(aes(umap_x, umap_y, col = label)) +
+  ggplot(aes(umap_x, umap_y, col = tumorType)) +
   geom_point(size = 4) +
   theme_classic(base_size = 24) +
   scale_color_manual(values = branded_colors1) +
-  theme(legend.direction = "horizontal") +
+  theme(legend.direction = "horizontal", legend.position = "bottom") +
   labs(x = "UMAP 1", y = "UMAP 2")
 
 
 anno %>% 
-  ggplot(aes(umap_x, umap_y, col = avg_beta)) +
-  geom_point(size = 8) +
+  ggplot(aes(umap_x, umap_y, col = conversion)) +
+  geom_point(size = 3) +
   paletteer::scale_color_paletteer_c("grDevices::Blue-Red 2") +
   theme_classic(base_size = 24) +
   theme(axis.text.y = element_blank(), 
@@ -103,7 +118,7 @@ anno %>%
 
 anno %>% 
   ggplot(aes(umap_x, umap_y, col = absolute)) +
-  geom_point(size = 8) +
+  geom_point(size = 3) +
   paletteer::scale_color_paletteer_c("grDevices::Blue-Red 2") +
   theme_classic(base_size = 24) +
   theme(axis.text.y = element_blank(), 
@@ -119,9 +134,9 @@ anno %>%
 ### plot basic statistics for the data set -------------------------------------
 
 anno %>% 
-  group_by(label) %>% 
+  group_by(tumorType) %>% 
   summarise(n = n()) %>% 
-  ggplot(aes(label, n, fill = label)) +
+  ggplot(aes(tumorType, n, fill = tumorType)) +
   geom_col() +
   theme_classic(base_size = 24) +
   theme(legend.position = "none") +
@@ -131,7 +146,7 @@ anno %>%
 
 # average methylation
 anno %>% 
-  ggplot(aes(label, avg_beta, col = label)) +
+  ggplot(aes(tumorType, avg_beta, col = tumorType)) +
   geom_boxplot(lwd = 1, outlier.shape = NA) +
   geom_jitter(width = 0.1) +
   theme_classic(base_size = 24) +
@@ -142,7 +157,7 @@ anno %>%
 
 # tumor purity
 anno %>% 
-  ggplot(aes(label, absolute, col = label)) +
+  ggplot(aes(tumorType, absolute, col = tumorType)) +
   geom_boxplot(lwd = 1, outlier.shape = NA) +
   geom_jitter(width = 0.1) +
   theme_classic(base_size = 24) +
@@ -150,27 +165,4 @@ anno %>%
   scale_colour_manual(values = branded_colors1) +
   labs(x = NULL, y = "Tumor Purity")
 
-
-
-
-
-### TEST GROUNDS --------------
-
-umap2 <- umap(d = betas_topvar)
-plot(umap2$layout[, 1], umap2$layout[, 2])
-test <- apply(betas_topvar, 1, function(x) tapply(x, INDEX = anno$label, FUN = mean, simplify = TRUE)) %>% t %>% as_tibble
-test <- test %>% mutate(
-  umap_x = umap2$layout[, 1], 
-  umap_y = umap2$layout[, 2]
-)
-
-test %>% 
-  pivot_longer(cols = 1:7, names_to = "label", values_to = "beta") %>% 
-  filter(!label == "NORM") %>% 
-  ggplot(aes(umap_x, umap_y, col = beta)) +
-  geom_point() +
-  scale_color_viridis_c() +
-  theme_classic(base_size = 20) +
-  labs(x = "UMAP 1", y = "UMAP 2") +
-  facet_wrap(facets = vars(label))
 

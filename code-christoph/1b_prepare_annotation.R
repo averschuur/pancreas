@@ -12,10 +12,10 @@ library(minfi)
 
 ### load annotation ------------------------------------------------------------
 
-anno_files <- list.files(path = "./input/annotation/cleaned/",
+anno_files <- list.files(path = "./annotation/",
                          pattern = ".csv",
                          full.names = TRUE)
-anno_files <- anno_files[!grepl(x = anno_files, pattern = "*tcga*")]
+anno_files <- anno_files[!grepl(x = anno_files, pattern = "*conversion_scores*")]
 anno_files <- anno_files[!grepl(x = anno_files, pattern = "*annotation_umcu_paired_samples*")]
 
 
@@ -31,10 +31,10 @@ saveRDS(object = anno, file = "./input/sample_annotation.rds")
 betas <- readRDS(file = "./input/pancreas_betas_everything.rds")
 betas_filtered <- readRDS(file = "./input/pancreas_betas_filtered.rds")
 
-all(colnames(betas) %in% anno$array_id)
-all(anno$array_id %in% colnames(betas))
+all(colnames(betas) %in% anno$arrayId)
+all(anno$arrayId %in% colnames(betas))
 
-all(colnames(betas_filtered) %in% anno$array_id)
-all(anno$array_id %in% colnames(betas_filtered))
+all(colnames(betas_filtered) %in% anno$arrayId)
+all(anno$arrayId %in% colnames(betas_filtered))
 
 all(colnames(betas) == colnames(betas_filtered))
