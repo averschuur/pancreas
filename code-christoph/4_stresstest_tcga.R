@@ -211,6 +211,57 @@ test <- randomForest(y = as.factor(c(rep("outlier", ncol(betas_tcga)), rep("real
 test
 table(test$predicted[test_anno$dataset == "validation"], test_anno$label[test_anno$dataset == "validation"])
 
+
+# outlier detection algorithm
+
+outlier_anno <- test_anno
+table(outlier_anno$label)
+outlier_scores <- rbind(tcga_scores_rf, pancreas_scores_rf)
+
+outlier_val <- which(outlier_anno$label %in% c("BLCA", "LUAD", "KIRC"))
+outlier_val <- c(outlier_val,
+                 sample((1:nrow(outlier_anno))[-outlier_val], size = ceiling((nrow(outlier_anno) - length(outlier_val))*0.5)))
+
+
+outlier_rf <- randomForest(x = outlier_scores[-outlier_val,], 
+                           y = as.factor(outlier_anno$dataset[-outlier_val]), 
+                           type = "classification")
+outlier_res <- predict(outlier_rf, newdata = outlier_scores[outlier_val,])
+val_anno <- outlier_anno[outlier_val, ]
+val_anno <- val_anno %>% 
+  mutate(outlier = as.vector(outlier_res))
+
+val_anno <- val_anno %>% 
+  mutate(correct = as.integer(dataset == outlier))
+
+val_anno %>% 
+  group_by(dataset) %>% 
+  summarise(accuracy = sum(correct)/n())
+
+val_anno %>% 
+  filter(label %in% c("BLCA", "LUAD", "KIRC")) %>%
+  group_by(label) %>% 
+  summarise(accuracy = sum(correct)/n()) %>% 
+  print(n = 28)
+
+
+# check umcu samples
+
+anno_umc <- read_csv("./input/annotation/cleaned/annotation_umcu.csv")
+betas_umc <- readRDS("./input/pancreas_betas_everything.rds")
+betas_umc <- betas_umc[, anno_umc$array_id]
+
+umc_scores_rf <- predict(object = rf_model, t(betas_umc[model_probes, ]), type = "prob")
+umc_class_rf <- predict(object = rf_model, t(betas_umc[model_probes, ]), type = "class")
+
+anno_umc <- anno_umc %>% 
+  mutate(rf_class = as.vector(umc_class_rf), 
+         rf_score = apply(umc_scores_rf, 1, max))
+umc_outlier <- predict(outlier_rf, newdata = umc_scores_rf)
+
+anno_umc <- anno_umc %>% 
+  mutate(outlier = umc_outlier)
+
 # mahalanobis distance
 
 rf_cov <- cov(pancreas_scores_rf)
@@ -236,3 +287,31 @@ test_anno %>%
   ggplot(aes(rf_score, colour = dataset)) +
   geom_density(linewidth = 2) +
   theme_classic(base_size = 24)
+
+head(pancreas_scores_rf)
+
+test <- pancreas_scores_rf %>% 
+  as_tibble(rownames = "sample_id") %>% 
+  pivot_longer(cols = -sample_id, names_to = "tumor_type", values_to = "rf_score") %>% 
+  mutate(rf_score = as.numeric(rf_score))
+
+i = 4
+test %>% 
+  slice_head(n = ncol(pancreas_scores_rf) * i) %>% 
+  ggplot(aes(tumor_type, rf_score, fill = tumor_type)) +
+  geom_col() +
+  theme_bw(base_size = 18) +
+  theme(panel.border = element_blank(), 
+        legend.position = "none") +
+  labs(x = NULL, y = NULL) +
+  coord_polar() + 
+  facet_wrap(~ sample_id)
+
+umc_discrepant <- anno_umc %>% filter(outlier == "TCGA") %>% pull(array_id)
+cor_umc_tcga <- cor(t(tcga_scores_rf), t(umc_scores_rf))
+cor_umc_tcga_discrepant <- cor_umc_tcga[, umc_discrepant]
+cor_umc_tcga_discrepant <- cor_umc_tcga_discrepant %>% as_tibble(rownames = "basename")
+cor_umc_tcga_discrepant <- left_join(cor_umc_tcga_discrepant, anno_tcga)
+umc_discrepant
+
+
