@@ -1,6 +1,9 @@
-####################
-### preparation ####
-####################
+# Christoph Geisenberger
+# github: @cgeisenberger
+# last edited 03/01/2023 by AV Verschuur
+
+
+# libraries
 
 # Load required packages and sources
 library(RFpurify)
@@ -10,9 +13,10 @@ library(tidyverse)
 library(Rtsne)
 library(umap)
 
-source("./scripts/branded_colors.R")
+source("./scripts/0_branded_colors.R")
+source("./scripts/0_functions.R")
 
-# load sample annotation and filter --------------------------------------------
+### load sample annotation and filter ------------------------------------------
 
 anno <- readRDS("./data/sample_annotation.rds")
 
@@ -22,12 +26,11 @@ anno <- anno %>%
   filter(location %in% c("primary", "pancreas")) %>% 
   filter(source != "UMCU")
 
-###############################
-#### estimate tumor purity ####
-###############################
+
+### estimate tumor purity ------------------------------------------------------
 
 # load unfiltered beta values
-betas <- readRDS("./data/methylation_data.rds")
+betas <- readRDS("./input/pancreas_betas_everything.rds")
 betas <- betas[,anno$arrayId]
 
 # get purity estimates 
@@ -39,6 +42,15 @@ anno <- anno %>%
   mutate(absolute = absolute,
          estimate = estimate,
          avg_beta = apply(betas, 2, mean, na.rm = TRUE))
+
+# add bisulfite conversion scores
+
+conv_scores <- read_csv(file = "./annotation/sample_annotation_conversion_scores.csv")
+conv_scores <- conv_scores %>%
+  select(arrayId, conversion)
+
+anno <- left_join(anno, conv_scores)
+
 
 ### plot basic statistics for the data set -------------------------------------
 
@@ -62,6 +74,7 @@ anno %>%
   theme_bw(base_size = 18) +
 ggsave("Figure 1A_count tumorType per source.png", path= "./output/")
 
+# tumor purity
 anno %>% 
   ggplot(aes(absolute, estimate)) +
   geom_point(size = 3) +
@@ -89,6 +102,7 @@ anno %>%
   theme_classic(base_size = 18)
 ggsave("Figure 1D_tumor purity per tumorType_absolute.png", path= "./output/")
 
+# average methylation
 anno %>% 
   ggplot(aes(tumorType, avg_beta, col = tumorType)) +
   geom_boxplot(outlier.shape = NA) +
@@ -103,79 +117,58 @@ ggsave("Figure 1C_average methylation.png", path= "./output/")
 rm(absolute, estimate, betas)
 
 
-#########################################
-#### perform dimensionlity reduction ####
-#########################################
+### dimensionality reduction ---------------------------------------------------
 
-betas1 <- readRDS("./data/methylation_data_filtered.rds")
-betas1 <- betas1[, anno$arrayId]
-any(is.na(betas1))
+betas <- readRDS("./input/pancreas_betas_filtered.rds")
+betas <- betas[, anno$arrayId]
+any(is.na(betas))
 
-# select most variable probes
-most_var <- apply(betas1, 1, var)
-most_var <- order(most_var, decreasing = TRUE)[1:5000]
-
-# calculate correlation matrix, use 1-cor as dissimlarity measure
-cor_matrix <- 1 - cor(betas1[most_var, ])
-
-# run tSNE
-tsne <- Rtsne(X = cor_matrix)
-
-# run UMAP
-umap <- umap(d = t(betas1[most_var, ]))
-saveRDS(object = umap, file = "./data/umap_model.rds")
-
+# add avg. methylation to annotation
 anno <- anno %>% 
-  mutate(tsne_x = tsne$Y[, 1],
-         tsne_y = tsne$Y[, 2], 
-         umap_x = umap$layout[, 1], 
-         umap_y = umap$layout[, 2])
-saveRDS(object = anno, file = "./data/sample_annotation_extended.rds")
+  add_column(avg_beta = apply(betas, 2, mean, na.rm = TRUE))
 
-# plot t-SNE map
-anno %>% 
-  ggplot(aes(tsne_x, tsne_y, col = tumorType)) + 
-  geom_point(size = 4, alpha = 0.7) +
-  #geom_text(data = anno %>% 
-                    #filter(tumorType == "PanNET"), aes(tsne_x, tsne_y, label = sampleName)) +
-  #geom_label(aes(tsne_x, tsne_y, label = sampleName, alpha = 0.5)) +
-  scale_colour_manual(values = branded_colors) +
-  labs(x = "tSNE 1", y = "tSNE 2") +
-  theme_bw(base_size = 20)
-ggsave("tSNE-all.png", path= "./output/")
+# determine most variable probes across dataset and subset beta values
+probe_var <- apply(betas, 1, var)
+probes_topvar <- rownames(betas)[order(probe_var, decreasing = TRUE)[1:10000]]
+betas_topvar <- betas[probes_topvar, ]
+
+saveRDS(object = probes_topvar, file = "./input/pancreas_top_variable_probes.rds")
 
 # plot UMAP
 anno %>% 
-  ggplot(aes(umap_x, umap_y, col = tumorType)) + 
-  geom_point(alpha = 0.7) +
-  #geom_label(aes(tsne_x, tsne_y, label = sampleName, alpha = 0.5)) +
-  scale_colour_manual(values = branded_colors) +
-  labs(x = "UMAP 1", y = "UMAP 2") +
-  theme_bw(base_size = 20)
-ggsave("UMAP-all.png", path= "./output/")
+  ggplot(aes(umap_x, umap_y, col = tumorType)) +
+  geom_point(size = 4) +
+  theme_classic(base_size = 24) +
+  scale_color_manual(values = branded_colors1) +
+  theme(legend.direction = "horizontal", legend.position = "bottom") +
+  labs(x = "UMAP 1", y = "UMAP 2")
 
 
+anno %>% 
+  ggplot(aes(umap_x, umap_y, col = conversion)) +
+  geom_point(size = 3) +
+  paletteer::scale_color_paletteer_c("grDevices::Blue-Red 2") +
+  theme_classic(base_size = 24) +
+  theme(axis.text.y = element_blank(), 
+        axis.text.x = element_blank(), 
+        axis.ticks = element_blank(), 
+        legend.direction = "horizontal", 
+        legend.position = "bottom", 
+        legend.key.width=unit(3,"cm")) +
+  labs(x = NULL, y = NULL)
 
-
-### TEST GROUNDS --------------
-
-umap2 <- umap(d = most_var)
-plot(umap2$layout[, 1], umap2$layout[, 2])
-test <- apply(most_var, 1, function(x) tapply(x, INDEX = anno$tumorType, FUN = mean, simplify = TRUE)) %>% t %>% as_tibble
-test <- test %>% mutate(
-  umap_x = umap2$layout[, 1], 
-  umap_y = umap2$layout[, 2]
-)
-
-test %>% 
-  pivot_longer(cols = 1:5, names_to = "label", values_to = "beta") %>% 
-  filter(!label == "NORM") %>% 
-  ggplot(aes(umap_x, umap_y, col = beta)) +
-  geom_point() +
-  scale_color_viridis_c() +
-  theme_classic(base_size = 20) +
-  labs(x = "UMAP 1", y = "UMAP 2") +
-  facet_wrap(facets = vars(label))
+anno %>% 
+  ggplot(aes(umap_x, umap_y, col = absolute)) +
+  geom_point(size = 3) +
+  paletteer::scale_color_paletteer_c("grDevices::Blue-Red 2") +
+  theme_classic(base_size = 24) +
+  theme(axis.text.y = element_blank(), 
+        axis.text.x = element_blank(), 
+        axis.ticks = element_blank(), 
+        legend.direction = "horizontal", 
+        legend.position = "bottom", 
+        legend.key.width=unit(3,"cm")) +
+  labs(x = NULL, y = NULL)
 
 
 
