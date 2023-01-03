@@ -2,7 +2,7 @@ arrayId,source,sampleName,arrayType,tumorType,location
 201364910013_R05C01,yachida,NE004,EPIC,PanNEC,primary
 201364910013_R06C01,yachida,NE005,EPIC,PanNEC,primary
 201364910146_R02C01,yachida,NE007,EPIC,PanNEC,primary
-201364910146_R03C01,yachida,NE008,EPIC,?,primary
+201364910146_R03C01,yachida,NE008,EPIC,NA,primary
 201364910146_R05C01,yachida,NE010,EPIC,PanNET,primary
 201364910146_R07C01,yachida,NE011,EPIC,PanNET,primary
 201414140123_R01C01,yachida,NE012,EPIC,PanNET,primary
