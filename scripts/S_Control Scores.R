@@ -74,8 +74,36 @@ saveRDS(object = anno, file= "./data/sample_annotation_conversion scores.rds")
 anno1 <- readRDS("./data/sample_annotation.rds")
 anno1 <- anno1 %>% 
   left_join(conversion)
-write.csv(anno1, file= "./annotation/sample_annotation_conversion scores.csv")
 
+# add classification of conversion tot anno
+anno <- anno %>%
+  mutate(good_score1 = case_when(conversion >= 1 ~ 'good',
+                                 conversion >= 0.8 ~ 'medium',
+                                 conversion < 0.8 ~ 'bad'))
+
+# stats
+anno %>%
+  group_by(good_score1) %>%
+  summarise(n = n()) %>%
+  mutate(freq = n / sum(n)*100)
+
+count <- anno %>%
+  group_by(source, good_score1) %>%
+  count(good_score1)
+
+count %>%
+  ggplot(aes(fill = good_score1, n, source)) +
+  geom_bar(position="fill", stat="identity")
+ggsave("Figure s1_Control Scores by source.pdf", path= "./output/", dpi=500)
+
+# save anno
+write.csv(anno, file= "./annotation/sample_annotation_conversion scores.csv")
+
+# save anno ex bad and medium samples
+anno_ebs <- anno %>%
+  subset(good_score1 == "good")
+
+saveRDS(anno_ebs, file ="./data/sample_annotation_extended_ex_bad_samples.rds")
 
 # Prepare for data visualisation
 anno %>%

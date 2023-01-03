@@ -2,8 +2,6 @@
 .Rhistory
 ./input
 ./data
-./presentations
-03_TumorPurity/*
 results/*
 data/*
 output/*

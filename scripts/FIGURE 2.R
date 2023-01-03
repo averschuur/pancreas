@@ -4,6 +4,90 @@
 
 library(gridExtra)
 
+### Figure2; count training, test and validation set by location --------------------------------------------
+
+
+train_anno$set <- "train"
+test_anno$set <- "test"
+annobind <- rbind(train_anno, test_anno)
+
+
+# prep
+set <- "train"
+train_anno <- cbind(train_anno, set)
+set <- "test"
+test_anno <- cbind(test_anno, set)
+set <- "val"
+val_anno <- cbind(val_anno, set)
+
+anno_all <- rbind(train_anno, test_anno, val_anno)
+
+anno_all <- anno_all %>%
+  mutate(Location = case_when(location == "primary" ~ 'primary',
+                              location == "liver metastasis" ~ 'metastasis',
+                              location == "lymph node metastasis" ~ 'metastasis',
+                              location == "bone metastasis" ~ 'metastasis',
+                              location == "bone metastatis" ~ 'metastasis',
+                              location == "metastasis" ~ 'metastasis',
+                              location == "acc normal" ~ 'normal',
+                              location == "normal" ~ 'normal',
+                              location == "pancreas" ~ 'normal'))
+
+# plot
+anno_all %>% 
+  ggplot(aes(set)) +
+  geom_bar(aes(fill = Location)) +
+  labs(#title="Tumor Type By Source",
+    x = "", y = "No. of cases", fill = "Location") +
+  paletteer::scale_fill_paletteer_d("rcartocolor::Safe", labels = c("Metastasis", "Normal", "Primary")) +
+  scale_x_discrete(limits = c("train", "test", "val"),
+                   breaks = c("train", "test", "val"),
+                   labels = c("Training Set", "Test Set", "Validation Set")) +
+  theme_bw(base_size = 18) +
+  theme(#plot.title = element_text(face = "bold", hjust = 0, size = 14),
+    axis.title.y = element_text(face = "bold", hjust = 0.5, vjust=2, size = 12),
+    axis.text.x = element_text(face = "bold", size = 11, vjust=0, hjust=0.5),
+    axis.ticks = element_blank(),
+    legend.position = c(.83, .79),
+    legend.title = element_text(face = "bold", size = 14),
+    legend.text = element_text(size = 14),
+    legend.key.size = unit(0.4, 'cm'),
+    panel.grid = element_blank())
+ggsave("Figure 2A_count Dataset by Location.pdf", path= "./output/", dpi=500)
+
+
+### Figure2; model performance by test an validation set --------------------------------------------
+df <-data.frame((c("nn", "rf", "xgb")), (c("93.9", "94.7", "92.8")))
+
+test_anno %>% 
+  mutate(nn = as.integer(tumorType == pred_nn), 
+         rf = as.integer(tumorType == pred_rf), 
+         xgb = as.integer(tumorType == pred_xgb)) %>% 
+  select(nn, rf, xgb) %>% 
+  pivot_longer(cols = everything()) %>% 
+  group_by(name) %>% 
+  summarise(accuracy = sum(value)/n()) %>% 
+  ggplot(aes(name, accuracy, fill = name)) +
+  geom_col(width = 0.7) +
+  geom_text(aes(label=df[,2]), vjust=1.6, color="white", size=3.5)+
+  scale_fill_manual(values = branded_colors) +
+  scale_x_discrete(limits = c("nn", "rf", "xgb"),
+                   breaks = c("nn", "rf", "xgb"),
+                   labels = c("Neural Network", "Random Forest", " XGBoost")) +
+  theme_bw(base_size = 30) +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5, size = 12),
+        axis.title.y = element_text(face = "bold", hjust = 0.5, vjust=2, size = 10),
+        axis.text.x = element_text(face = "bold", size = 9, vjust=0.1, hjust=0.5),
+        axis.text.y = element_text(face = "bold", size = 8),
+        axis.ticks.length=unit(.2, "cm"),
+        legend.position = "none",
+        panel.grid = element_blank()) +
+  labs(title="Algorithm Performance",x = NULL, y = "Accuracy (test cohort)") +
+  ylim(0, 1)
+ggsave("Figure2_Algorithm Performance.png", path= "./output/")
+
+
+
 # Figure 2 umap
 anno %>% 
   ggplot(aes(umap_x, umap_y, col = tumorType)) + 

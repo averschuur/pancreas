@@ -40,14 +40,14 @@ train_anno <- anno %>%
   slice_head(n = 10) %>% 
   ungroup()
 
-# use rest of the data set as test cohort
-test_anno <- anno %>% 
-  anti_join(y = train_anno)
-
 # training set stats
 train_anno %>% 
   group_by(tumorType, source, location) %>%
   summarise(n = n())
+
+# use rest of the data set as test cohort
+test_anno <- anno %>% 
+  anti_join(y = train_anno)
 
 # select train data
 train_data <- betas[, train_anno$arrayId]
@@ -57,7 +57,7 @@ top_var_probes <- apply(train_data, 1, var) %>%
   order(decreasing = TRUE)
 top_var_probes <- rownames(train_data)[top_var_probes[1:5000]]
 top_var_probes_names <- rownames(train_data)[top_var_probes]
-saveRDS(object = top_var_probes_names, file = "./input/model_probes.RDS")
+saveRDS(object = top_var_probes_names, file = "./data/model_probes.RDS")
 
 # subset training and test data
 train_data <- betas[top_var_probes, train_anno$arrayId]
@@ -76,7 +76,6 @@ train_labels_0based <- as.numeric(as.factor(train_anno$tumorType)) - 1
 test_labels_0based <- as.numeric(as.factor(test_anno$tumorType)) - 1
 
 
-
 # determine groups for 5-fold cross-validation ---------------------------------
 
 set.seed(2341324)
@@ -85,20 +84,24 @@ indices <- sample(1:ncol(train_data))
 folds <- cut(1:length(indices), breaks = k, labels = FALSE)
 
 
+################
+### Training ###
+################
+
 ### train neural network ---------------------------------------------------------
 
 # set parameters
-num_epochs <- 20
+num_epochs <- 35
 all_accuracy_histories <- NULL
 
 # helper function for building the NN
 build_model <- function() {
   model <- keras_model_sequential() %>% 
-    layer_dense(units = 343, activation = "relu", 
+    layer_dense(units = 64, activation = "relu", 
                 input_shape = nrow(train_data)) %>% 
-    layer_dense(units = 343, activation = "relu") %>% 
-    layer_dense(units = 49, activation = "relu") %>% 
-    layer_dense(units = 7, activation = 'softmax')
+    layer_dense(units = 64, activation = "relu") %>% 
+    layer_dense(units = 64, activation = "relu") %>% 
+    layer_dense(units = ncol(train_labels_onehot), activation = 'softmax')
   
   model %>% compile(
     optimizer = "rmsprop", 
@@ -125,7 +128,7 @@ for (i in 1:k) {
     partial_train_labels, 
     validation_data = list(val_data, val_labels),
     epochs = num_epochs, 
-    batch_size = 7, 
+    batch_size = ncol(train_labels_onehot), 
     verbose = 1
   )
   
@@ -137,13 +140,14 @@ for (i in 1:k) {
 # assemble performance metrics into dataframe
 nn_stats <- tibble(
   epochs = rep(1:num_epochs, 2), 
-  measure = rep(c("accuracy", "val_accuracy"), each = 20),
+  measure = rep(c("accuracy", "val_accuracy"), each = 35),
   mean = apply(all_accuracy_histories, 1, mean), 
   sd = apply(all_accuracy_histories, 1, sd)
 )
 
 # check overall accuracy:
 model %>% evaluate(val_data, val_labels)
+
 
 nn_stats %>%
   ggplot(aes(epochs, mean, col = measure)) +
@@ -153,15 +157,13 @@ nn_stats %>%
   scale_colour_manual(values = branded_colors) +
   scale_fill_manual(values = branded_colors)
 
-#### ???? what is the added value of 5-fold CV? Is there any information included in the final model?
-
-# train final model
+#### train final model ---------------------------------------------------------
 nn_model <- keras_model_sequential() %>% 
-  layer_dense(units = 343, activation = "relu", 
+  layer_dense(units = 64, activation = "relu", 
               input_shape = nrow(train_data)) %>% 
-  layer_dense(units = 343, activation = "relu") %>% 
-  layer_dense(units = 49, activation = "relu") %>% 
-  layer_dense(units = 7, activation = 'softmax')
+  layer_dense(units = 64, activation = "relu") %>% 
+  layer_dense(units = 64, activation = "relu") %>% 
+  layer_dense(units = ncol(train_labels_onehot), activation = 'softmax')
 
 nn_model %>% compile(
   optimizer = "rmsprop", 
@@ -188,7 +190,7 @@ plot(fit)
 dev.off()
 
 # save model
-save_model_hdf5(object = nn_model, filepath = "./output/model_nn.hdf5")
+save_model_hdf5(object = nn_model, filepath = "./output/model_nn_955.hdf5")
 
 
 ### train random forest ----------------------------------------------------------
@@ -208,7 +210,7 @@ for (i in 1:k) {
   partial_train_data <- t(train_data[, -val_indices])
   partial_train_labels <- train_labels[-val_indices] %>% as.factor
   
-  model <- randomForest(x = partial_train_data, y = as.factor(partial_train_labels))
+  model <- randomForest(x = partial_train_data, y = as.factor(partial_train_labels), ntree =2000)
   
   predicted_train <- model$predicted
   predicted_val <- predict(model, newdata = val_data)
@@ -224,10 +226,13 @@ colnames(rf_accuracy_histories) <- c("train", "val")
 
 apply(rf_accuracy_histories, 2, mean)
 
+
 # train final model
-rf_model <- randomForest(x = t(train_data), y = as.factor(train_labels))
+rf_model <- randomForest(x = t(train_data), y = as.factor(train_labels), ntree=2000)
 rf_model
 
+# save model
+save_model_hdf5(object = rf_model, filepath = "./output/model_rf_947.hdf5")
 
 
 ### train gradient boosting machines (XGBoost) -----------------------------------
@@ -249,14 +254,17 @@ gb_model <- xgboost(data = t(train_data),
                     params = xgb_params)
 
 
-### calculate model performance in test data -------------------------------------
+
+
+#####################################
+### Model performance calculation ###
+#####################################
+
 test_anno %>% 
   group_by(tumorType) %>% 
   summarise(n = n())
 
-
-# NEURAL NETWORK 
-
+### neural network -------------------------------------------------------------
 # scores
 pred_nn_scores <- predict(object = nn_model, t(test_data))
 colnames(pred_nn_scores) <- colnames(test_labels_onehot)
@@ -267,11 +275,11 @@ pred_nn_class <- apply(pred_nn_scores, 1, function(x){
 })
 
 # merge levels of training and test dataset together and print the confusionMatrix
-table(prediction = as.factor(pred_nn_class), actual = as.factor(pred_nn_class)) %>% 
+table(prediction = as.factor(pred_nn_class), actual = as.factor(test_anno$tumorType)) %>% 
   caret::confusionMatrix()
 
 
-# RANDOM FOREST
+### random forest  -------------------------------------------------------------
 
 # scores
 pred_rf_scores <- predict(object = rf_model, t(test_data), type = "prob")
@@ -283,8 +291,7 @@ pred_rf_class <- predict(object = rf_model, t(test_data))
 table(prediction = pred_rf_class, actual = test_anno$tumorType) %>% 
   caret::confusionMatrix()
 
-
-# XGBOOST 
+### xg boosting machines -------------------------------------------------------
 
 # scores
 pred_xgb_scores <- predict(object = gb_model, newdata = t(test_data))
@@ -302,9 +309,13 @@ pred_xgb_class <- apply(pred_xgb_scores, 1, function(x){
 table(prediction = pred_xgb_class, actual = test_anno$tumorType) %>% 
   caret::confusionMatrix()
 
-#####################################
-### add performance to annotation ###
-#####################################
+
+
+###########################################
+### algorithm performance visualization ###
+###########################################
+
+### add performance to annotation ----------------------------------------------
 test_anno <- test_anno %>% 
   mutate(pred_nn = pred_nn_class, 
          pred_rf = pred_rf_class, 
@@ -343,6 +354,7 @@ x <- test_anno %>%
          xgb_corr = as.integer(tumorType == pred_xgb)) %>% 
   group_by(tumorType) %>% 
   summarise(sum(nn_corr) / n(), sum(rf_corr) / n(), sum(xgb_corr) / n())
+
 
 
 ### dimensionality reduction and UMAP/tSNE for whole cohort ----------------------
@@ -423,7 +435,7 @@ train_data %>%
   geom_boxplot() +
   scale_fill_manual(values = branded_colors)
 
-# project results onto UMAP ------------
+### project results onto UMAP ------------
 
 class_results <- test_anno %>% 
   select(arrayId, starts_with("pred"))

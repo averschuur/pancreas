@@ -1,4 +1,4 @@
-#Annotation UMAP
+#example for looking up annotation UMAP
 
 
 annotation <- data.frame(
