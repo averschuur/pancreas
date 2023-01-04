@@ -1,3 +1,19 @@
+# detect idats
+detect_idats <- function(dir){
+  
+  pat <- "_Grn.idat"
+  
+  # returns tibble with path, filename and array ID
+  idats <- tibble(path = list.files(dir, pattern = pat, full.names = TRUE)) 
+  idats <- idats %>% 
+    mutate(filename = str_extract(string = path, 
+                                  pattern = "[0-9]*_R[0-9]{2}C[0-9]{2}_Grn.idat")) %>% 
+    mutate(array_id = str_replace(string = filename,
+                                  pattern = pat, replacement = ""))
+  return(idats)
+}
+
+
 
 # get control probes ------------------------------------------------
 getControlBeta <- function(rgSet, 
