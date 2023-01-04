@@ -1,11 +1,16 @@
+# Christoph Geisenberger
+# github: @cgeisenberger
+# last edited 04/01/2023 by AV Verschuur
+
+
 ### Load required packages and sources ----------------------------------------------------------------
 
 library(tidyverse)
 library(ggplot2)
 library(minfi)
 
-source("./scripts/functions.R")
-source("./scripts/branded_colors.R")
+source("./scripts/)_functions.R")
+source("./scripts/0_branded_colors.R")
 
 
 # load annotation, start from raw data
@@ -15,12 +20,6 @@ anno_paired <- read_csv(file = "./annotation/annotation_umcu_paired.csv")
 
 #idats <- detect_idats(dir = "./input/UMCU/Idat Files_All/")
 #idats <- idats[match(anno_umcu$arrayId, idats$arrayId), ]
-
-
-
-idats <- list.files(path = "./input/UMCU/Idat Files_All",
-                    full.names = TRUE, 
-                    pattern = "_Grn.idat")
 
 
 # infer platform from filesize, apparantly different generations of EPIC were used
@@ -37,12 +36,11 @@ betas <- minfi::preprocessNoob(raw, dyeMethod= "single") %>%
   getBeta()
 rm(raw)
 
-i = 7
+i = 9
 
-#betas <- betas[,anno$arrayId]
 
-test <- betas[, c(anno_paired$arrayId1, anno_paired$arrayId2)]
-colnames(test) <- c("sample1", "sample2", "sample1", "sample2","sample1", "sample2","sample1", "sample2")
+test <- betas[, c(anno_paired$array_id_1[i], anno_paired$array_id_2[i])]
+colnames(test) <- c("sample1", "sample2")
 dim(test)
 
 test %>% 
@@ -50,19 +48,19 @@ test %>%
   slice_sample(n = 50000) %>% 
   ggplot(aes(sample1, sample2)) +
   #geom_bin2d(bins = 50) +
-  geom_point(pch = ".", col = branded_colors[2], alpha = 0.4) +
+  geom_point(pch = ".", col = branded_colors2[2], alpha = 0.4) +
   scale_fill_distiller(palette = "PuRd", direction = 1) +
   theme_classic(base_size = 20)
 
-test <- cor(betas[, anno_paired$arrayId1], betas[, anno_paired$arrayId2])
+test <- cor(betas[, anno_paired$array_id_1], betas[, anno_paired$array_id_2])
 #test[lower.tri(test)] <- NA
 test <- test %>% 
   as_tibble(rownames = "source") %>% 
-  pivot_longer(cols = 0:8, names_to = "target", values_to = "cor")
+  pivot_longer(cols = 2:10, names_to = "target", values_to = "cor")
 
 test2 <- anno_paired %>% 
-  select(arrayId1, arrayId2) %>% 
-  rename(arrayId1 = "source", arrayId2 = "matched")
+  select(array_id_1, array_id_2) %>% 
+  rename(array_id_1 = "source", array_id_2 = "matched")
 
 test <- test %>% 
   left_join(test2)
