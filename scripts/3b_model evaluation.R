@@ -1,6 +1,6 @@
-########################
-### Model evaluation ###
-########################
+# Christoph Geisenberger
+# github: @cgeisenberger
+# last edited 04/01/2023 by AV Vreschuur
 
 
 ### assess implementation of cutoff for classifier scores ----------------------
@@ -58,7 +58,7 @@ performance_cutoff %>%
   geom_line() +
   ylim(c(0.5, 1)) +
   scale_color_manual(values = branded_colors) +
-  theme_bw(base_size = 20) +
+  theme_bw(base_size = 30) +
   theme(legend.position = "none") +
   facet_grid(cols = vars(method)) +
   labs(x = "Cutoff", y = "Accuracy/Predictable (%)")
