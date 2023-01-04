@@ -1,6 +1,7 @@
-######################
-### Model training ###
-######################
+# Christoph Geisenberger
+# github: @cgeisenberger
+# last edited 01/01/2023 by AV Verschuur
+
 
 ### Load required packages and sources ------------------------------------------------------------
 library(tidyverse)
@@ -17,8 +18,9 @@ source("./scripts/functions.R")
 source("./scripts/branded_colors.R")
 
 # load annotation and data
-anno <- readRDS("./data/sample_annotation.rds")
-betas <- readRDS(file = "./data/methylation_data_filtered.rds")
+anno <- readRDS("./input/sample_annotation_umap_purity.rds")
+betas <- readRDS(file = "./input/pancreas_betas_everything.rds")
+top_var_probes <- readRDS(file = "./input/pancreas_top_variable_probes.rds")
 
 # remove MACNECs and Mixed tumors
 anno <- anno %>% 
@@ -28,6 +30,14 @@ anno <- anno %>%
   filter(!sampleName == "UMCU_ACC2")
 
 betas <- betas[, anno$arrayId]
+
+anno %>% 
+  group_by(label) %>% 
+  summarise(n = n())
+
+anno %>% 
+  group_by(source) %>% 
+  summarise(n = n())
 
 ### split sample into training and test cohort -----------------------
 
@@ -52,12 +62,8 @@ test_anno <- anno %>%
 # select train data
 train_data <- betas[, train_anno$arrayId]
 
-# select most variable probes 
-top_var_probes <- apply(train_data, 1, var) %>% 
-  order(decreasing = TRUE)
-top_var_probes <- rownames(train_data)[top_var_probes[1:5000]]
+# annotate most variable probes 
 top_var_probes_names <- rownames(train_data)[top_var_probes]
-saveRDS(object = top_var_probes_names, file = "./data/model_probes.RDS")
 
 # subset training and test data
 train_data <- betas[top_var_probes, train_anno$arrayId]
@@ -84,14 +90,11 @@ indices <- sample(1:ncol(train_data))
 folds <- cut(1:length(indices), breaks = k, labels = FALSE)
 
 
-################
-### Training ###
-################
 
 ### train neural network ---------------------------------------------------------
 
 # set parameters
-num_epochs <- 35
+num_epochs <- 20
 all_accuracy_histories <- NULL
 
 # helper function for building the NN
@@ -140,7 +143,7 @@ for (i in 1:k) {
 # assemble performance metrics into dataframe
 nn_stats <- tibble(
   epochs = rep(1:num_epochs, 2), 
-  measure = rep(c("accuracy", "val_accuracy"), each = 35),
+  measure = rep(c("accuracy", "val_accuracy"), each = 20),
   mean = apply(all_accuracy_histories, 1, mean), 
   sd = apply(all_accuracy_histories, 1, sd)
 )
@@ -157,7 +160,10 @@ nn_stats %>%
   scale_colour_manual(values = branded_colors) +
   scale_fill_manual(values = branded_colors)
 
+
+
 #### train final model ---------------------------------------------------------
+
 nn_model <- keras_model_sequential() %>% 
   layer_dense(units = 64, activation = "relu", 
               input_shape = nrow(train_data)) %>% 
@@ -181,16 +187,12 @@ fit <- nn_model %>% fit(
 
 # check overall accuracy:
 nn_model %>% evaluate(t(test_data), test_labels_onehot)
-# 0.1144942 0.9784173 
 
-fit
-
-png(file='accuracy nn_model.png', bg= "transparent")
-plot(fit)
-dev.off()
 
 # save model
-save_model_hdf5(object = nn_model, filepath = "./output/model_nn_955.hdf5")
+save_model_hdf5(object = nn_model, filepath = "./output/model_nn.hdf5")
+
+
 
 
 ### train random forest ----------------------------------------------------------
@@ -229,10 +231,10 @@ apply(rf_accuracy_histories, 2, mean)
 
 # train final model
 rf_model <- randomForest(x = t(train_data), y = as.factor(train_labels), ntree=2000)
-rf_model
+
 
 # save model
-save_model_hdf5(object = rf_model, filepath = "./output/model_rf_947.hdf5")
+save_model_hdf5(object = rf_model, filepath = "./output/model_rf.hdf5")
 
 
 ### train gradient boosting machines (XGBoost) -----------------------------------
@@ -256,30 +258,31 @@ gb_model <- xgboost(data = t(train_data),
 
 
 
-#####################################
-### Model performance calculation ###
-#####################################
+### calculate model performance in test data -------------------------------------
 
 test_anno %>% 
   group_by(tumorType) %>% 
   summarise(n = n())
 
-### neural network -------------------------------------------------------------
+
+# NEURAL NETWORK 
+
 # scores
 pred_nn_scores <- predict(object = nn_model, t(test_data))
 colnames(pred_nn_scores) <- colnames(test_labels_onehot)
 
 # classes
-pred_nn_class <- apply(pred_nn_scores, 1, function(x){
+pred_nn_classes <- apply(pred_nn_scores, 1, function(x){
   colnames(pred_nn_scores)[which.max(x)]
 })
 
-# merge levels of training and test dataset together and print the confusionMatrix
-table(prediction = as.factor(pred_nn_class), actual = as.factor(test_anno$tumorType)) %>% 
+#merge levels of training and test dataset together and print the confusionMatrix
+table(prediction = pred_nn_classes, actual = test_anno$tumorType) %>% 
   caret::confusionMatrix()
 
 
-### random forest  -------------------------------------------------------------
+
+# RANDOM FOREST
 
 # scores
 pred_rf_scores <- predict(object = rf_model, t(test_data), type = "prob")
@@ -291,14 +294,15 @@ pred_rf_class <- predict(object = rf_model, t(test_data))
 table(prediction = pred_rf_class, actual = test_anno$tumorType) %>% 
   caret::confusionMatrix()
 
-### xg boosting machines -------------------------------------------------------
+
+# XGBOOST 
 
 # scores
 pred_xgb_scores <- predict(object = gb_model, newdata = t(test_data))
 pred_xgb_scores <- pred_xgb_scores %>% 
   matrix(nrow = 7)
 pred_xgb_scores <- t(pred_xgb_scores)
-colnames(pred_xgb_scores) <- c("ACC", "normal", "PanNEC", "PanNET", "PB", "PDAC", "SPN")
+colnames(pred_xgb_scores) <- c("ACC", "NORM", "PanNEC", "PanNET", "PB", "PDAC", "SPN")
 
 # classes
 pred_xgb_class <- apply(pred_xgb_scores, 1, function(x){
@@ -311,17 +315,7 @@ table(prediction = pred_xgb_class, actual = test_anno$tumorType) %>%
 
 
 
-###########################################
-### algorithm performance visualization ###
-###########################################
-
-### add performance to annotation ----------------------------------------------
-test_anno <- test_anno %>% 
-  mutate(pred_nn = pred_nn_class, 
-         pred_rf = pred_rf_class, 
-         pred_xgb = pred_xgb_class)
-
-
+### algorithm performance visualization ----------------------------------------------
 
 # add performance to annotation
 test_anno <- test_anno %>% 
@@ -343,9 +337,22 @@ test_anno %>%
   ggplot(aes(name, accuracy, fill = name)) +
   geom_col(width = 0.7) +
   scale_fill_manual(values = branded_colors) +
-  theme_bw(base_size = 18) +
-  labs(x = NULL, y = "Accuracy (test cohort)")
+  theme_bw(base_size = 30) +
+  theme(legend.position = "none") +
+  labs(x = NULL, y = "Accuracy (test cohort)") +
+  ylim(0, 1)
 ggsave("accuracy_models.png", path= "./output/")
+
+test_anno %>% 
+  mutate(nn_corr = as.integer(tumorType == pred_nn)) %>% 
+  group_by(tumorType) %>% 
+  summarise(accuracy = sum(nn_corr) / n()) %>% 
+  ggplot(aes(tumorType, accuracy, fill = tumorType)) +
+  geom_col(width = 0.7) +
+  scale_fill_manual(values = branded_colors1) +
+  theme_bw(base_size = 30) +
+  theme(legend.position = "none") +
+  labs(x = NULL, y = "Accuracy (test cohort)")
 
 
 x <- test_anno %>% 
@@ -357,85 +364,7 @@ x <- test_anno %>%
 
 
 
-### dimensionality reduction and UMAP/tSNE for whole cohort ----------------------
-#Why is this script included in the model building script?
-
-dr_input <- 1 - cor(betas[top_var_probes, ])
-dr_input <- betas[top_var_probes, ] %>% t
-
-# run t-SNE
-tsne <- Rtsne(dr_input, perplexity = 15)
-
-# plot t-SNE
-anno %>% 
-  ggplot(aes(tsne$Y[, 1], tsne$Y[, 2], col = tumorType)) + 
-  geom_point(size = 4, alpha = 0.7) +
-  #geom_text(data = anno %>% 
-  #filter(tumorType == "PanNET"), aes(tsne$Y[, 1], tsne$Y[, 2], label = sampleName)) +
-  geom_label(aes(tsne$Y[, 1], tsne$Y[, 2], label = sampleName, alpha = 0.5)) +
-  scale_colour_manual(values = branded_colors) +
-  labs(x = "tSNE 1", y = "tSNE 2") +
-  theme_bw(base_size = 20)
-ggsave("tSNE-whole cohort_labeled.png", path= "./output/")
-
-# run UMAP
-umap <- umap(dr_input, min_dist = 0.5, n_neighbors = 10)
-plot(umap$layout)
-
-# add info to annotation
-anno <- anno %>% 
-  mutate(tsne_x = tsne$Y[, 1], 
-         tsne_y = tsne$Y[, 2], 
-         umap_x = umap$layout[, 1], 
-         umap_y = umap$layout[, 2])
-
-
-# show which samples are in test and training cohort
-anno <- anno %>% 
-  mutate(split = ifelse(arrayId %in% train_anno$arrayId, "train", "test"))
-
-anno <- anno %>% 
-  mutate(avg_beta = apply(betas, 2, mean, na.rm = TRUE))
-
-
-# tumor type (plot UMAP)
-anno %>% 
-  ggplot(aes(umap_x, umap_y, color = tumorType)) +
-  geom_point(size = 4, alpha = 0.7) +
-  #geom_label(aes(tsne_x, tsne_y, label = sampleName, alpha = 0.5)) +
-  scale_colour_manual(values = branded_colors) +
-  theme_bw(base_size = 18) +
-  labs(x = "Umap 1", y = "Umap 2")
-ggsave("UMAP-whole cohort.png", path= "./output/")
-
-# avg methylation 
-anno %>% 
-  ggplot(aes(tumorType, avg_beta, fill = tumorType)) +
-  geom_violin() +
-  scale_fill_manual(values = branded_colors) +
-  theme_bw(base_size = 18) +
-  labs(x = NULL, y = "Average Methylation") +
-  theme(legend.position = "none")
-ggsave("AVG methylation-whole cohort.png", path= "./output/")
-
-
-anno %>% 
-  ggplot(aes(tsne_x, tsne_y, color = split)) +
-  geom_point(size = 3, alpha = 0.5) +
-  scale_fill_manual(values = branded_colors) +
-  theme_bw(base_size = 18) +
-  labs(x = "t-SNE 1", y = "t-SNE 2")
-ggsave("tSNE by split-whole cohort.png", path= "./output/")
-
-
-
-# boxplot of MVPs per tumorType #werkt niet
-train_data %>%
-  ggplot(aes(train_data$tumorType, train_data[top_var_probes[3], ]), color = tumorType) +
-  geom_boxplot() +
-  scale_fill_manual(values = branded_colors)
-
-### project results onto UMAP ------------
+### project results onto UMAP --------------------------------------------------
 
 class_results <- test_anno %>% 
   select(arrayId, starts_with("pred"))
@@ -445,18 +374,18 @@ anno_ext <- anno_ext %>%
   mutate(dataset = ifelse(is.na(pred_nn), "train", "test"))
 
 anno_ext %>% 
-  mutate(correct = as.integer(label == pred_nn)) %>% 
+  mutate(correct = as.integer(tumorType == pred_nn)) %>% 
   ggplot(aes(umap_x, umap_y, colour = dataset)) +
   geom_point(size = 3) +
   scale_colour_manual(values = branded_colors) +
   theme_classic(base_size = 30) +
   labs(x = NULL, y = "Accuracy (test cohort)")
 
-
 anno_ext %>% 
-  mutate(correct = as.factor(label == pred_nn)) %>% 
+  mutate(correct = as.factor(tumorType == pred_nn)) %>% 
   ggplot(aes(umap_x, umap_y, colour = correct)) +
   geom_point(size = 3, alpha = 0.8) +
   theme_classic(base_size = 30) +
   labs(x = NULL, y = "Accuracy (test cohort)")
+
 
