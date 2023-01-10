@@ -18,12 +18,12 @@ cutoffs <- seq(from = 0.3, to = 0.95, length.out = 14)
 
 
 cutoff_nn <- slide_along_cutoff(label_real = cutoff_true_classes, 
-                                label_pred = pred_nn_classes, 
+                                label_pred = pred_nn_class, 
                                 scores = cutoff_scores_nn, 
                                 cutoffs = cutoffs)
 
 cutoff_rf <- slide_along_cutoff(label_real = cutoff_true_classes, 
-                                label_pred = pred_rf_classes, 
+                                label_pred = pred_rf_class, 
                                 scores = cutoff_scores_rf, 
                                 cutoffs = cutoffs)
 
@@ -57,7 +57,7 @@ performance_cutoff %>%
   geom_point(size = 3) +
   geom_line() +
   ylim(c(0.5, 1)) +
-  scale_color_manual(values = branded_colors) +
+  scale_color_manual(values = branded_colors1) +
   theme_bw(base_size = 30) +
   theme(legend.position = "none") +
   facet_grid(cols = vars(method)) +
@@ -71,7 +71,7 @@ test_anno %>%
   mutate(method = str_extract(string = method, pattern = "[^_]*$")) %>% 
   ggplot(aes(score, method, col = method)) +
   geom_jitter(size = 3, width = 0.1) +
-  scale_color_manual(values = branded_colors) +
+  scale_color_manual(values = branded_colors1) +
   theme_bw(base_size = 20) +
   theme(legend.position = "none") +
   labs(x = "Score", y = NULL)
@@ -84,7 +84,7 @@ test_anno %>%
   mutate(method = str_extract(string = method, pattern = "[^_]*$")) %>% 
   ggplot(aes(source, score, col = tumorType)) +
   geom_jitter(size = 3, width = 0.1) +
-  scale_color_manual(values = branded_colors) +
+  scale_color_manual(values = branded_colors1) +
   theme_bw(base_size = 20) +
   theme(legend.position = "top") +
   labs(x = "Score", y = NULL)
