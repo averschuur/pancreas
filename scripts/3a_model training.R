@@ -14,8 +14,8 @@ library(xgboost)
 library(Rtsne)
 library(umap)
 
-source("./scripts/functions.R")
-source("./scripts/branded_colors.R")
+source("./scripts/0_functions.R")
+source("./scripts/0_branded_colors.R")
 
 # load annotation and data
 anno <- readRDS("./input/sample_annotation_umap_purity.rds")
@@ -32,7 +32,7 @@ anno <- anno %>%
 betas <- betas[, anno$arrayId]
 
 anno %>% 
-  group_by(label) %>% 
+  group_by(tumorType) %>% 
   summarise(n = n())
 
 anno %>% 
@@ -157,8 +157,8 @@ nn_stats %>%
   geom_line(lwd = 2) +
   theme_classic(base_size = 20) +
   geom_ribbon(aes(x = epochs, ymin = mean-sd, ymax = mean+sd, fill = measure), alpha = 0.2) +
-  scale_colour_manual(values = branded_colors) +
-  scale_fill_manual(values = branded_colors)
+  scale_colour_manual(values = branded_colors1) +
+  scale_fill_manual(values = branded_colors1)
 
 
 
@@ -181,7 +181,7 @@ fit <- nn_model %>% fit(
   t(train_data), 
   train_labels_onehot,
   validation_data = list(t(test_data), test_labels_onehot),
-  epochs = 25, 
+  epochs = 20, 
   batch_size = 7
 )
 
@@ -272,12 +272,12 @@ pred_nn_scores <- predict(object = nn_model, t(test_data))
 colnames(pred_nn_scores) <- colnames(test_labels_onehot)
 
 # classes
-pred_nn_classes <- apply(pred_nn_scores, 1, function(x){
+pred_nn_class <- apply(pred_nn_scores, 1, function(x){
   colnames(pred_nn_scores)[which.max(x)]
 })
 
 #merge levels of training and test dataset together and print the confusionMatrix
-table(prediction = pred_nn_classes, actual = test_anno$tumorType) %>% 
+table(prediction = pred_nn_class, actual = test_anno$tumorType) %>% 
   caret::confusionMatrix()
 
 
@@ -336,7 +336,7 @@ test_anno %>%
   summarise(accuracy = sum(value)/n()) %>% 
   ggplot(aes(name, accuracy, fill = name)) +
   geom_col(width = 0.7) +
-  scale_fill_manual(values = branded_colors) +
+  scale_fill_manual(values = branded_colors1) +
   theme_bw(base_size = 30) +
   theme(legend.position = "none") +
   labs(x = NULL, y = "Accuracy (test cohort)") +
