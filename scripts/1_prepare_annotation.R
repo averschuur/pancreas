@@ -17,7 +17,7 @@ anno_files <- list.files(path = "./annotation/",
                          full.names = TRUE)
 anno_files <- anno_files[!grepl(x = anno_files, pattern = "*tcga*")]
 anno_files <- anno_files[!grepl(x = anno_files, pattern = "*annotation_umcu_paired_samples*")]
-anno_files <- anno_files[!grepl(x = anno_files, pattern = "*sample_annotation_conversion scores*")]
+anno_files <- anno_files[!grepl(x = anno_files, pattern = "*sample_annotation_conversion_scores*")]
 
 
 anno <- lapply(as.list(anno_files), read_csv)

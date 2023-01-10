@@ -6,8 +6,8 @@
 # libraries
 
 # Load required packages and sources
-library(RFpurify)
 library(minfi)
+library(RFpurify)
 library(minfiData)
 library(tidyverse)
 library(Rtsne)
@@ -18,11 +18,11 @@ source("./scripts/0_functions.R")
 
 ### load sample annotation and filter ------------------------------------------
 
-anno <- readRDS("./data/sample_annotation.rds")
+anno <- readRDS("./input/sample_annotation.rds")
 
 # keep primaries (PanNET, ACC, SPN and PDAC) and normal pancreas, filter out UMC
 anno <- anno %>% 
-  filter(tumorType %in% c("PanNET", "ACC", "SPN", "PDAC", "normal", "acc normal", "PanNEC", "PB")) %>% 
+  filter(tumorType %in% c("PanNET", "ACC", "SPN", "PDAC", "NORM", "PanNEC", "PB")) %>% 
   filter(location %in% c("primary", "pancreas")) %>% 
   filter(source != "UMCU")
 
@@ -41,7 +41,7 @@ estimate <- RFpurify::predict_purity_betas(betas = betas, method = "ESTIMATE")
 anno <- anno %>% 
   mutate(absolute = absolute,
          estimate = estimate,
-         avg_beta = apply(betas, 2, mean, na.rm = TRUE))
+         avg_beta_unfiltered = apply(betas, 2, mean, na.rm = TRUE))
 
 # add bisulfite conversion scores
 
@@ -62,7 +62,7 @@ anno %>%
   geom_col() +
   theme_classic(base_size = 20) +
   theme(legend.position = "none") +
-  scale_fill_manual(values = branded_colors) +
+  scale_fill_manual(values = branded_colors1) +
   labs(x = NULL, y = "Number of Cases")
 
 # number of cases by source
@@ -70,8 +70,8 @@ anno %>%
   ggplot(aes(tumorType)) +
   geom_bar(aes(fill = source)) +
   labs(title="Tumor Type By Source",x = "", y = "No. of cases") +
-  scale_fill_manual(values = branded_colors) +
-  theme_bw(base_size = 18) +
+  scale_fill_manual(values = branded_colors1) +
+  theme_bw(base_size = 18)
 ggsave("Figure 1A_count tumorType per source.png", path= "./output/")
 
 # tumor purity
@@ -88,7 +88,7 @@ anno %>%
   geom_point(aes(shape=tumorType), position = position_jitterdodge(0.5), alpha=0.9) +
   #geom_jitter(aes(fill=tumorType, shape=tumorType)) +
   scale_shape_manual(values = c(21, 25, 22, 23, 24, 8, 10)) +
-  scale_colour_manual(values = branded_colors) +
+  scale_colour_manual(values = branded_colors1) +
   theme_classic(base_size = 18)
 ggsave("Figure 1D_tumor purity per tumorType_estimate.png", path= "./output/")
 
@@ -98,17 +98,17 @@ anno %>%
   geom_point(aes(shape=tumorType), position = position_jitterdodge(0.5), alpha=0.9) +
   #geom_jitter(aes(fill=tumorType, shape=tumorType)) +
   scale_shape_manual(values = c(21, 25, 22, 23, 24, 8, 1)) +
-  scale_colour_manual(values = branded_colors) +
+  scale_colour_manual(values = branded_colors1) +
   theme_classic(base_size = 18)
 ggsave("Figure 1D_tumor purity per tumorType_absolute.png", path= "./output/")
 
 # average methylation
 anno %>% 
-  ggplot(aes(tumorType, avg_beta, col = tumorType)) +
+  ggplot(aes(tumorType, avg_beta_unfiltered, col = tumorType)) +
   geom_boxplot(outlier.shape = NA) +
   geom_jitter() +
   scale_shape_manual(values = c(21, 25, 22, 23, 24, 8, 1)) +
-  scale_colour_manual(values = branded_colors) +
+  scale_colour_manual(values = branded_colors1) +
   theme_bw(base_size = 18) +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 ggsave("Figure 1C_average methylation.png", path= "./output/")
@@ -119,13 +119,14 @@ rm(absolute, estimate, betas)
 
 ### dimensionality reduction ---------------------------------------------------
 
+# load filtered beta values
 betas <- readRDS("./input/pancreas_betas_filtered.rds")
 betas <- betas[, anno$arrayId]
 any(is.na(betas))
 
 # add avg. methylation to annotation
 anno <- anno %>% 
-  add_column(avg_beta = apply(betas, 2, mean, na.rm = TRUE))
+  add_column(avg_beta_filtered = apply(betas, 2, mean, na.rm = TRUE))
 
 # determine most variable probes across dataset and subset beta values
 probe_var <- apply(betas, 1, var)
@@ -133,6 +134,23 @@ probes_topvar <- rownames(betas)[order(probe_var, decreasing = TRUE)[1:10000]]
 betas_topvar <- betas[probes_topvar, ]
 
 saveRDS(object = probes_topvar, file = "./input/pancreas_top_variable_probes.rds")
+
+
+# run UMAP
+umap_settings <- umap.defaults
+umap_settings$n_neighbors = 15
+umap_settings$min_dist = 0.2
+
+umap <- umap(d = t(betas_topvar), config = umap_settings, ret_model = TRUE)
+
+anno <- anno %>% 
+  mutate(umap_x = umap$layout[, 1], 
+         umap_y = umap$layout[, 2])
+
+saveRDS(object = umap, file = "./input/umap_model.rds")
+
+saveRDS(object = anno, file = "./input/sample_annotation_umap_purity.rds")
+
 
 # plot UMAP
 anno %>% 
