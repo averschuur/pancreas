@@ -9,6 +9,7 @@ library(tidyverse)
 library(ggplot2)
 
 library(keras)
+library(randomForest)
 
 library(Rtsne)
 library(umap)
@@ -46,7 +47,7 @@ anno_tcga$tumorType[anno_tcga$tumorType == "ACC"] <- "ADC"
 
 # load models and model probes -------------------------------------------------
 
-top_var_probes <- readRDS(file = "./input/pancreas_top_variable_probes.rds")
+model_probes <- readRDS(file = "./input/pancreas_top_variable_probes.rds")
 nn_model <- load_model_hdf5(filepath = "./output/model_nn.hdf5")
 rf_model <- readRDS(file = "./output/model_rf.rds")
 
@@ -67,8 +68,11 @@ nn_scores_tcga_max <- apply(nn_scores_tcga, 1, max)
 nn_classes_tcga <- apply(nn_scores_tcga, 1, which.max)
 nn_classes_tcga <- nn_labels[nn_classes_tcga]
 
+
 # calculate scores for Pancreas Samples
 nn_scores_pancreas_max <- apply(nn_scores_pancreas, 1, max)
+nn_classes_pancreas <- apply(nn_scores_pancreas, 1, which.max)
+nn_classes_pancreas <- nn_labels[nn_classes_pancreas]
 
 # collect data
 nn_scores_all <- tibble(class_int = c(rep(0, nrow(nn_scores_tcga)), 
@@ -76,8 +80,9 @@ nn_scores_all <- tibble(class_int = c(rep(0, nrow(nn_scores_tcga)),
                         score = c(nn_scores_tcga_max, nn_scores_pancreas_max))
 
 nn_scores_max <- nn_scores_all %>% 
-  mutate(class_char = ifelse(class_int == 0, "tcga", "pancreas")) %>% 
-  select(class_char, class_int, score)
+  mutate(class_char = ifelse(class_int == 0, "tcga", "pancreas"),
+         pred_class = c(as.character(nn_classes_tcga), as.character(nn_classes_pancreas))) %>% 
+  select(class_char, class_int, score, pred_class)
 
 
 # plot score distribution 
@@ -87,12 +92,21 @@ nn_scores_max %>%
   theme_bw(base_size = 20) +
   labs(x = NULL)
 
+# plot score distributions
+nn_scores_max %>% 
+  ggplot(aes(score, fill = class_char)) +
+  geom_density(alpha = 0.4) +
+  theme_bw(20) + facet_wrap(facets = vars(pred_class))
+
+
 # plot ROC curve
-nn_scores_roc <- roc(nn_scores_max$class_int, nn_scores_max$score)
+nn_scores_roc <- pROC::roc(nn_scores_max$class_int, nn_scores_max$score)
 plot.roc(nn_scores_roc)
 
 # create tibble with NeuralNet results for each TCGA class
-nn_label_prop <- anno_tcga %>% 
+nn_label_prop <- anno_tcga %>%
+  mutate(nn_class = nn_classes_tcga,
+         nn_scores = apply(nn_scores_tcga, 1, max)) %>%
   select(tumorType, nn_class) %>% 
   group_by(tumorType, nn_class) %>% 
   summarise(n = n()/25) %>% 
@@ -130,6 +144,13 @@ rf_scores_all <- tibble(class_int = c(rep(0, nrow(rf_scores_tcga)),
 rf_scores_all <- rf_scores_all %>%
   mutate(class_char = ifelse(class_int == 0, "tcga", "pancreas"), 
          pred_class = c(as.character(rf_class_tcga), as.character(rf_class_pancreas)))
+
+# plot score distribution 
+rf_scores_all %>% 
+  ggplot(aes(class_char, score, fill = class_char)) +
+  geom_boxplot() +
+  theme_bw(base_size = 20) +
+  labs(x = NULL)
 
 # plot score distributions
 rf_scores_all %>% 
@@ -182,11 +203,13 @@ anno %>%
   theme_bw(base_size = 20)
 
 # check umcu samples
+anno_umc <- read_csv("./annotation/annotation_umcu.csv")
+anno_umc <- anno_umc %>% 
+  filter(!sampleName == "ACC2")
 
 betas_umc <- readRDS("./input/pancreas_betas_everything.rds")
 betas_umc <- betas_umc[, anno_umc$arrayId]
 
-anno_umc <- read_csv("./annotation/annotation_umcu.csv")
 
 umc_scores_rf <- predict(object = rf_model, t(betas_umc[model_probes, ]), type = "prob")
 umc_class_rf <- predict(object = rf_model, t(betas_umc[model_probes, ]), type = "class")
