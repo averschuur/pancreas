@@ -9,24 +9,24 @@ library(tidyverse)
 library(ggplot2)
 library(minfi)
 
-source("./scripts/)_functions.R")
+source("./scripts/0_functions.R")
 source("./scripts/0_branded_colors.R")
 
 
 # load annotation, start from raw data
 
 anno_umcu <- read_csv(file = "./annotation/annotation_umcu.csv")
-anno_paired <- read_csv(file = "./annotation/annotation_umcu_paired.csv")
+anno_paired <- read_csv(file = "./annotation/annotation_umcu_paired_samples.csv")
 
-#idats <- detect_idats(dir = "./input/UMCU/Idat Files_All/")
-#idats <- idats[match(anno_umcu$arrayId, idats$arrayId), ]
-
+idats <- detect_idats(dir = "./data/UMCU/Idat Files_All/")
+idats <- idats[match(anno_umcu$arrayId, idats$array_id), ]
+#idats <- idats[1:22,]
 
 # infer platform from filesize, apparantly different generations of EPIC were used
-file_size <- file.info(idats)$size
+file_size <- file.info(idats$path)$size
 
 # load raw data
-raw <- minfi::read.metharray(idats, force = TRUE)
+raw <- minfi::read.metharray(idats$path, force = TRUE)
 
 # extract SNP values to make sure samples are matched
 snp_beta <- minfi::getSnpBeta(raw)
