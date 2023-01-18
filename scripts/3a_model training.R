@@ -234,7 +234,7 @@ rf_model <- randomForest(x = t(train_data), y = as.factor(train_labels), ntree=2
 
 
 # save model
-save_model_hdf5(object = rf_model, filepath = "./output/model_rf.hdf5")
+saveRDS(object = rf_model, file = "./output/model_rf.rds")
 
 
 ### train gradient boosting machines (XGBoost) -----------------------------------
