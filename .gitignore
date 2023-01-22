@@ -2,6 +2,7 @@
 .Rhistory
 ./input
 ./data
+code-christoph/*
 results/*
 data/*
 output/*
