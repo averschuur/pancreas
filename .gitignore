@@ -1,7 +1,6 @@
+.DS_Store
 .Rproj.user
 .Rhistory
-./input
-./data
 code-christoph/*
 results/*
 data/*

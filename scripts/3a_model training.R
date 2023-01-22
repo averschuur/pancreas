@@ -3,7 +3,7 @@
 # last edit 16/01/2023 (CG)
 
 
-### Load required packages and sources ------------------------------------------------------------
+# load libraries
 
 library(tidyverse)
 library(ggplot2)
@@ -15,15 +15,19 @@ library(caret)
 
 library(doParallel)
 
+
 # load annotation and data
+
 anno <- readRDS("./input/sample_annotation_umap_purity.rds")
 betas <- readRDS(file = "./input/pancreas_betas_everything.rds")
+
 top_var_probes <- readRDS(file = "./input/pancreas_top_variable_probes.rds")
+top_var_probes <- top_var_probes[1:5000]
 
 # filter
-betas <- betas[top_var_probes[1:2000], anno$arrayId]
+betas <- betas[top_var_probes, anno$arrayId]
 
-# split into training and testing cohort
+# split into training and testing cohort (80/20)
 set.seed(1234312)
 anno <- anno %>% 
   mutate(cohort = sample(x = c("train", "test"), size = nrow(anno), 
@@ -36,18 +40,8 @@ y_train <- anno$tumorType[anno$cohort == "train"] %>% as.factor()
 y_test <- anno$tumorType[anno$cohort == "test"] %>% as.factor()
 
 
-# I THINK THE CODE BELOW CAN BE REMOVED ???
 
-# # remove MACNECs and Mixed tumors
-# anno <- anno %>% 
-#   filter(!tumorType %in% c("MACNEC", "Mixed", "?", "Mixed_ACC_NEC", "Mixed_ACC_DA", "Mixed_ACC_DA_NEC")) %>% 
-#   filter(!location %in% c("acinar cells", "alpha cells", "beta cells", 
-#                           "ductal cells", "MACNEC normal", "?")) %>%
-#   filter(!sampleName == "UMCU_ACC2")
-
-
-
-# Random Forest: Parameter tuning and model training ---------------------------
+# 1: Random Forest Tuning ------------------------------------------------------
 
 # set up control with 5-fold cross validation repeated 10 times
 control <- trainControl(method = "repeatedcv", 
@@ -57,6 +51,7 @@ control <- trainControl(method = "repeatedcv",
 
 # set up parallel backend
 registerDoParallel(cores = 64)
+getDoParWorkers()
 
 rf_gridsearch <- function(x, y, ntrees, ...){
   caret::train(x = x, y = y, 
@@ -67,14 +62,32 @@ rf_gridsearch <- function(x, y, ntrees, ...){
                trControl = control)
 }
 
-t0 <- Sys.time()
-rf_n500 <- rf_gridsearch(x_train, y_train, ntrees = 500)
-t1 <- Sys.time() - t0
-t1
+# took 41.5 mins to run
+rf_n500 <- rf_gridsearch(t(x_train), y_train, ntrees = 500)
+rf_n1k <- rf_gridsearch(t(x_train), y_train, ntrees = 1000)
+rf_n2k <- rf_gridsearch(t(x_train), y_train, ntrees = 2000)
+rf_n5k <- rf_gridsearch(t(x_train), y_train, ntrees = 5000)
+rf_n10k <- rf_gridsearch(t(x_train), y_train, ntrees = 10000)
 
-rf_gridsearch
-plot(rf_gridsearch)
+# deregister parallel workers
+stopImplicitCluster()
 
+# collect data into list
+rf_tuning <- list(rf_n500, rf_n1k, rf_n2k, rf_n5k, rf_n10k)
+
+# extract results into df
+rf_tuning_results <- lapply(rf_tuning, function(x){
+  y = as_tibble(x$results)
+  y <- y %>% 
+    mutate(ntree = as.factor(x$dots$ntrees))
+  return(y)
+})
+
+rf_tuning_results <- Reduce(f = bind_rows, x = rf_tuning_results)
+
+# save results to disk
+saveRDS(object = rf_tuning, file ="./rf_tuning.rds")
+saveRDS(object = rf_tuning_results, file ="./rf_tuning_table.rds")
 
 
 
