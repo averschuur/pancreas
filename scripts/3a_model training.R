@@ -1,43 +1,84 @@
 # Christoph Geisenberger
 # github: @cgeisenberger
-# last edited 01/01/2023 by AV Verschuur
+# last edit 16/01/2023 (CG)
 
 
 ### Load required packages and sources ------------------------------------------------------------
+
 library(tidyverse)
 library(ggplot2)
 
 library(keras)
 library(randomForest)
 library(xgboost)
+library(caret)
 
-library(Rtsne)
-library(umap)
-
-source("./scripts/0_functions.R")
-source("./scripts/0_branded_colors.R")
+library(doParallel)
 
 # load annotation and data
 anno <- readRDS("./input/sample_annotation_umap_purity.rds")
 betas <- readRDS(file = "./input/pancreas_betas_everything.rds")
 top_var_probes <- readRDS(file = "./input/pancreas_top_variable_probes.rds")
 
-# remove MACNECs and Mixed tumors
+# filter
+betas <- betas[top_var_probes[1:2000], anno$arrayId]
+
+# split into training and testing cohort
+set.seed(1234312)
 anno <- anno %>% 
-  filter(!tumorType %in% c("MACNEC", "Mixed", "?", "Mixed_ACC_NEC", "Mixed_ACC_DA", "Mixed_ACC_DA_NEC")) %>% 
-  filter(!location %in% c("acinar cells", "alpha cells", "beta cells", 
-                          "ductal cells", "MACNEC normal", "?")) %>%
-  filter(!sampleName == "UMCU_ACC2")
+  mutate(cohort = sample(x = c("train", "test"), size = nrow(anno), 
+                         replace = TRUE, prob = c(0.8, 0.2)))
 
-betas <- betas[, anno$arrayId]
+x_train <- betas[, anno$cohort == "train"]
+x_test <- betas[, anno$cohort == "test"]
 
-anno %>% 
-  group_by(tumorType) %>% 
-  summarise(n = n())
+y_train <- anno$tumorType[anno$cohort == "train"] %>% as.factor()
+y_test <- anno$tumorType[anno$cohort == "test"] %>% as.factor()
 
-anno %>% 
-  group_by(source) %>% 
-  summarise(n = n())
+
+# I THINK THE CODE BELOW CAN BE REMOVED ???
+
+# # remove MACNECs and Mixed tumors
+# anno <- anno %>% 
+#   filter(!tumorType %in% c("MACNEC", "Mixed", "?", "Mixed_ACC_NEC", "Mixed_ACC_DA", "Mixed_ACC_DA_NEC")) %>% 
+#   filter(!location %in% c("acinar cells", "alpha cells", "beta cells", 
+#                           "ductal cells", "MACNEC normal", "?")) %>%
+#   filter(!sampleName == "UMCU_ACC2")
+
+
+
+# Random Forest: Parameter tuning and model training ---------------------------
+
+# set up control with 5-fold cross validation repeated 10 times
+control <- trainControl(method = "repeatedcv", 
+                        number = 5, 
+                        repeats = 10, 
+                        search = "grid")
+
+# set up parallel backend
+registerDoParallel(cores = 64)
+
+rf_gridsearch <- function(x, y, ntrees, ...){
+  caret::train(x = x, y = y, 
+               method = "rf", 
+               metric = "Accuracy", 
+               tuneLength = 50, 
+               ntrees = ntrees, 
+               trControl = control)
+}
+
+t0 <- Sys.time()
+rf_n500 <- rf_gridsearch(x_train, y_train, ntrees = 500)
+t1 <- Sys.time() - t0
+t1
+
+rf_gridsearch
+plot(rf_gridsearch)
+
+
+
+
+
 
 ### split sample into training and test cohort -----------------------
 
@@ -195,6 +236,8 @@ save_model_hdf5(object = nn_model, filepath = "./output/model_nn.hdf5")
 
 
 
+<<<<<<< HEAD
+=======
 ### train random forest ----------------------------------------------------------
 
 
@@ -237,6 +280,7 @@ rf_model <- randomForest(x = t(train_data), y = as.factor(train_labels), ntree=2
 saveRDS(object = rf_model, file = "./output/model_rf.rds")
 
 
+>>>>>>> 2094cbcc66108691bd2050d697cdce3608770e1d
 ### train gradient boosting machines (XGBoost) -----------------------------------
 
 xgb_params <- list("objective" = "multi:softprob",
