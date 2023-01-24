@@ -15,150 +15,124 @@ library(caret)
 
 library(doParallel)
 
+source(file = "./scripts/0_functions.R")
 
-# load annotation and data
 
-anno <- readRDS("./input/sample_annotation_umap_purity.rds")
+# import annotation and data ---------------------------------------------------
+
+anno <- readRDS("./output/sample_annotation_umap_purity.rds")
 betas <- readRDS(file = "./input/pancreas_betas_everything.rds")
 
-top_var_probes <- readRDS(file = "./input/pancreas_top_variable_probes.rds")
+top_var_probes <- readRDS(file = "./output/pancreas_top_variable_probes.rds")
 top_var_probes <- top_var_probes[1:5000]
 
 # filter
 betas <- betas[top_var_probes, anno$arrayId]
 
-# split into training and testing cohort (80/20)
+# split into training and testing cohort (50/50)
 set.seed(1234312)
+train_index <- createDataPartition(as.factor(anno$tumorType), times = 1, list = TRUE)
+train_groups <- rep("train", nrow(anno))
+train_groups[train_index$Resample1] <- "test"
+
 anno <- anno %>% 
-  mutate(cohort = sample(x = c("train", "test"), size = nrow(anno), 
-                         replace = TRUE, prob = c(0.8, 0.2)))
+  mutate(cohort = train_groups)
+rm(train_index, train_groups)
+#saveRDS(object = anno, "./output/sample_annotation_umap_purity.rds")
 
-x_train <- betas[, anno$cohort == "train"]
-x_test <- betas[, anno$cohort == "test"]
+train_set <- list()
+test_set <- list()
 
-y_train <- anno$tumorType[anno$cohort == "train"] %>% as.factor()
-y_test <- anno$tumorType[anno$cohort == "test"] %>% as.factor()
+train_set$x <- t(betas[, anno$cohort == "train"])
+train_set$y <- as.factor(anno$tumorType[anno$cohort == "train"])
+
+test_set$x <- t(betas[, anno$cohort == "test"])
+test_set$y <- as.factor(anno$tumorType[anno$cohort == "test"])
+
+# upsample the training cohort
+train_set_upsampled <- upSample(x = train_set$x, y = train_set$y, list = TRUE)
+
+# add one-hot converted y for neural networks
+train_set_upsampled$onehot <- to_one_hot(train_set_upsampled$y)
+test_set$onehot <- to_one_hot(test_set$y)
+
+# saveRDS(object = train_set_upsampled, file = "./output/train_set_upsampled.rds")
+# saveRDS(object = test_set, file = "./output/test_set.rds")
 
 
 
-# 1: Random Forest Tuning ------------------------------------------------------
+# set up training parameters ---------------------------------------------------
 
-# set up control with 5-fold cross validation repeated 10 times
+# 10-fold cross validation, repeated three times
 control <- trainControl(method = "repeatedcv", 
-                        number = 5, 
-                        repeats = 10, 
-                        search = "grid")
+                        number = 10,
+                        repeats = 3)
 
-# set up parallel backend
-registerDoParallel(cores = 64)
+# parallel processing
+registerDoParallel(cores = 6)
 getDoParWorkers()
 
-rf_gridsearch <- function(x, y, ntrees, ...){
-  caret::train(x = x, y = y, 
-               method = "rf", 
-               metric = "Accuracy", 
-               tuneLength = 50, 
-               ntrees = ntrees, 
-               trControl = control)
-}
 
-# took 41.5 mins to run
-rf_n500 <- rf_gridsearch(t(x_train), y_train, ntrees = 500)
-rf_n1k <- rf_gridsearch(t(x_train), y_train, ntrees = 1000)
-rf_n2k <- rf_gridsearch(t(x_train), y_train, ntrees = 2000)
-rf_n5k <- rf_gridsearch(t(x_train), y_train, ntrees = 5000)
-rf_n10k <- rf_gridsearch(t(x_train), y_train, ntrees = 10000)
 
-# deregister parallel workers
-stopImplicitCluster()
+# default random forest, no tuning ---------------------------------------------
 
-# collect data into list
-rf_tuning <- list(rf_n500, rf_n1k, rf_n2k, rf_n5k, rf_n10k)
+rf_tunegrid <- expand.grid(mtry = floor(sqrt(ncol(train_set$x))))
 
-# extract results into df
-rf_tuning_results <- lapply(rf_tuning, function(x){
-  y = as_tibble(x$results)
-  y <- y %>% 
-    mutate(ntree = as.factor(x$dots$ntrees))
-  return(y)
-})
+rf_model <- caret::train(x = train_set_upsampled$x,
+                         y = train_set_upsampled$y, 
+                         method = "rf",
+                         trControl = control,
+                         tuneGrid = rf_tunegrid,
+                         metric = "Accuracy")
 
-rf_tuning_results <- Reduce(f = bind_rows, x = rf_tuning_results)
+saveRDS(object = rf_model, file = "./output/rf_model_default.rds")
 
-# save results to disk
-saveRDS(object = rf_tuning, file ="./rf_tuning.rds")
-saveRDS(object = rf_tuning_results, file ="./rf_tuning_table.rds")
+rf_pred <- predict(rf_model, newdata = test_set$x)
+confusionMatrix(rf_pred, test_set$y)
 
 
 
+# default xgb, no tuning -------------------------------------------------------
 
+xgb_tunegrid <- expand.grid(nrounds = 100, 
+                            max_depth = 6,
+                            eta = 0.3,
+                            gamma = 1,
+                            colsample_bytree = 1,
+                            min_child_weight = 1,
+                            subsample = 1)
 
-### split sample into training and test cohort -----------------------
+xgb_model <- caret::train(x = train_set_upsampled$x,
+                         y = train_set_upsampled$y, 
+                         method = "xgbTree",
+                         trControl = control,
+                         tuneGrid = xgb_tunegrid,
+                         metric = "Accuracy")
 
-# use n = 10 samples per tumor type and study for the training cohort
-train_anno <- anno %>% 
-  filter(source != "UMCU") %>%
-  filter(location %in% c("primary", "pancreas")) %>%
-  filter(source != "yachida" | tumorType != "PanNET") %>%
-  group_by(source, tumorType, location) %>% 
-  slice_head(n = 10) %>% 
-  ungroup()
+saveRDS(object = xgb_model, file = "./output/xgb_model_default.rds")
 
-# training set stats
-train_anno %>% 
-  group_by(tumorType, source, location) %>%
-  summarise(n = n())
-
-# use rest of the data set as test cohort
-test_anno <- anno %>% 
-  anti_join(y = train_anno)
-
-# select train data
-train_data <- betas[, train_anno$arrayId]
-
-# annotate most variable probes 
-top_var_probes_names <- rownames(train_data)[top_var_probes]
-
-# subset training and test data
-train_data <- betas[top_var_probes, train_anno$arrayId]
-test_data <- betas[top_var_probes, test_anno$arrayId]
-
-# define target values, i.e. labels
-train_labels <- train_anno$tumorType
-test_labels <- test_anno$tumorType
-
-# convert to one-hot encoding for neural network
-train_labels_onehot <- to_one_hot(train_labels)
-test_labels_onehot <- to_one_hot(test_labels)
-
-# convert to 0-based numeric vector for XGBoost
-train_labels_0based <- as.numeric(as.factor(train_anno$tumorType)) - 1
-test_labels_0based <- as.numeric(as.factor(test_anno$tumorType)) - 1
-
-
-# determine groups for 5-fold cross-validation ---------------------------------
-
-set.seed(2341324)
-k <- 5
-indices <- sample(1:ncol(train_data))
-folds <- cut(1:length(indices), breaks = k, labels = FALSE)
+xgb_pred <- predict(xgb_model, newdata = test_set$x)
+confusionMatrix(xgb_pred, test_set$y)
 
 
 
-### train neural network ---------------------------------------------------------
+# neural network ---------------------------------------------------------
+
+# cross-validation parameters
+cv_reps <- 3
+cv_folds_n <- 10
 
 # set parameters
-num_epochs <- 20
-all_accuracy_histories <- NULL
+n_epochs <- 100
 
-# helper function for building the NN
+# helper function for model
 build_model <- function() {
   model <- keras_model_sequential() %>% 
     layer_dense(units = 64, activation = "relu", 
-                input_shape = nrow(train_data)) %>% 
+                input_shape = ncol(train_set_upsampled$x)) %>% 
     layer_dense(units = 64, activation = "relu") %>% 
     layer_dense(units = 64, activation = "relu") %>% 
-    layer_dense(units = ncol(train_labels_onehot), activation = 'softmax')
+    layer_dense(units = ncol(train_set_upsampled$onehot), activation = 'softmax')
   
   model %>% compile(
     optimizer = "rmsprop", 
@@ -167,63 +141,74 @@ build_model <- function() {
   )
 }
 
-# run k-fold crossvalidation 
-for (i in 1:k) {
-  cat("Processing fold #", i , "\n")
+
+## run cross-validation -------------------------
+perf_hist <- NULL
+
+for(j in 1:cv_reps){
+  cat("Processing rep #", j , "\n")
+  cv_folds <- cut(seq(1, nrow(train_set_upsampled$x)), 
+                  breaks = cv_folds_n, labels = FALSE) %>% sample()
+  for (i in 1:cv_folds_n) {
+    cat("Processing fold #", i , "\n")
   
-  val_indices <- indices[which(folds == i, arr.ind = TRUE)]
-  val_data <- t(train_data[, val_indices])
-  val_labels <- train_labels_onehot[val_indices, ]
+    val_indices <- which(cv_folds == i, arr.ind = TRUE)
+    val_data <- train_set_upsampled$x[val_indices, ]
+    val_labels <- train_set_upsampled$onehot[val_indices, ]
   
-  partial_train_data <- t(train_data[, -val_indices])
-  partial_train_labels <- train_labels_onehot[-val_indices, ]
+    partial_train_data <- train_set_upsampled$x[-val_indices, ]
+    partial_train_labels <- train_set_upsampled$onehot[-val_indices, ]
   
-  model <- build_model()
+    model <- build_model()
   
-  history <- model %>% fit(
-    partial_train_data, 
-    partial_train_labels, 
-    validation_data = list(val_data, val_labels),
-    epochs = num_epochs, 
-    batch_size = ncol(train_labels_onehot), 
-    verbose = 1
-  )
+    history <- model %>% fit(
+      as.matrix(partial_train_data), 
+      partial_train_labels, 
+      validation_data = list(as.matrix(val_data), val_labels),
+      epochs = n_epochs, 
+      batch_size = 16, 
+      verbose = 1
+    )
   
-  accuracy_history <- c(history$metrics$accuracy, history$metrics$val_accuracy)
-  
-  all_accuracy_histories <- cbind(all_accuracy_histories, accuracy_history)
+    perf <- cbind(j, i, 1:n_epochs, history$metrics$accuracy, history$metrics$val_accuracy)
+    perf_hist <- rbind(perf_hist, perf)
+  }
 }
 
-# assemble performance metrics into dataframe
-nn_stats <- tibble(
-  epochs = rep(1:num_epochs, 2), 
-  measure = rep(c("accuracy", "val_accuracy"), each = 20),
-  mean = apply(all_accuracy_histories, 1, mean), 
-  sd = apply(all_accuracy_histories, 1, sd)
-)
-
-# check overall accuracy:
-model %>% evaluate(val_data, val_labels)
+colnames(perf_hist) <- c("rep", "fold", "epoch", "acc_train", "acc_test")
+perf_hist <- as_tibble(perf_hist)
 
 
-nn_stats %>%
-  ggplot(aes(epochs, mean, col = measure)) +
-  geom_line(lwd = 2) +
-  theme_classic(base_size = 20) +
-  geom_ribbon(aes(x = epochs, ymin = mean-sd, ymax = mean+sd, fill = measure), alpha = 0.2) +
-  scale_colour_manual(values = branded_colors1) +
-  scale_fill_manual(values = branded_colors1)
+perf_hist %>%
+  group_by(epoch) %>%
+  summarise(train = mean(acc_train), 
+            val = mean(acc_test),
+            delta = train-val) %>% 
+  ggplot(aes(epoch, delta)) +
+  geom_line(lwd = 1) +
+  geom_smooth() +
+  theme_classic(base_size = 20)
+
+perf_hist %>%
+  group_by(epoch) %>%
+  summarise(train = sd(acc_train), 
+            val = sd(acc_test),
+            delta = train-val) %>% 
+  pivot_longer(cols = c(train, val)) %>% 
+  ggplot(aes(epoch, value, col = name)) +
+  geom_smooth() +
+  theme_classic(base_size = 20)
 
 
 
-#### train final model ---------------------------------------------------------
+## train final model -------------------------
 
 nn_model <- keras_model_sequential() %>% 
   layer_dense(units = 64, activation = "relu", 
-              input_shape = nrow(train_data)) %>% 
+              input_shape = ncol(train_set_upsampled$x)) %>%
   layer_dense(units = 64, activation = "relu") %>% 
   layer_dense(units = 64, activation = "relu") %>% 
-  layer_dense(units = ncol(train_labels_onehot), activation = 'softmax')
+  layer_dense(units = ncol(train_set_upsampled$onehot), activation = 'softmax')
 
 nn_model %>% compile(
   optimizer = "rmsprop", 
@@ -231,150 +216,57 @@ nn_model %>% compile(
   metrics = c("accuracy")
 )
 
-fit <- nn_model %>% fit(
-  t(train_data), 
-  train_labels_onehot,
-  validation_data = list(t(test_data), test_labels_onehot),
-  epochs = 20, 
-  batch_size = 7
+nn_model %>% fit(
+  as.matrix(train_set_upsampled$x), 
+  train_set_upsampled$onehot,
+  validation_data = list(as.matrix(test_set$x), test_set$onehot),
+  epochs = 50, 
+  batch_size = 16
 )
 
 # check overall accuracy:
-nn_model %>% evaluate(t(test_data), test_labels_onehot)
+nn_model %>% evaluate(as.matrix(test_set$x), test_set$onehot)
 
 
 # save model
-save_model_hdf5(object = nn_model, filepath = "./output/model_nn.hdf5")
+save_model_hdf5(object = nn_model, filepath = "./output/nn_model.hdf5")
 
 
 
 
-<<<<<<< HEAD
-=======
-### train random forest ----------------------------------------------------------
-
-
-# initiate object to record classifier performance
-rf_accuracy_histories <- NULL
-
-# run k-fold crossvalidation
-for (i in 1:k) {
-  cat("Processing fold #", i , "\n")
-  
-  val_indices <- indices[which(folds == i, arr.ind = TRUE)]
-  val_data <- t(train_data[, val_indices])
-  val_labels <- train_labels[val_indices] %>% as.factor
-  
-  partial_train_data <- t(train_data[, -val_indices])
-  partial_train_labels <- train_labels[-val_indices] %>% as.factor
-  
-  model <- randomForest(x = partial_train_data, y = as.factor(partial_train_labels), ntree =2000)
-  
-  predicted_train <- model$predicted
-  predicted_val <- predict(model, newdata = val_data)
-  
-  train_accuracy <- sum(partial_train_labels == predicted_train) / length(partial_train_labels)
-  val_accuracy <- sum(as.vector(val_labels) == as.vector(predicted_val)) / length(val_labels)
-  
-  rf_accuracy_histories <- rbind(rf_accuracy_histories, 
-                                 c(train_accuracy, val_accuracy))
-}
-
-colnames(rf_accuracy_histories) <- c("train", "val")
-
-apply(rf_accuracy_histories, 2, mean)
-
-
-# train final model
-rf_model <- randomForest(x = t(train_data), y = as.factor(train_labels), ntree=2000)
-
-
-# save model
-saveRDS(object = rf_model, file = "./output/model_rf.rds")
-
-
->>>>>>> 2094cbcc66108691bd2050d697cdce3608770e1d
-### train gradient boosting machines (XGBoost) -----------------------------------
-
-xgb_params <- list("objective" = "multi:softprob",
-                   "eval_metric" = "merror",
-                   "num_class" = max(train_labels_0based) + 1)
-
-xgb_cv <- xgb.cv(params = xgb_params, data = t(train_data), label = train_labels_0based, 
-                 nrounds = 100, nfold = 5, 
-                 showsd = TRUE, stratified = TRUE, print_every_n = 10, 
-                 early_stop_round = 20, maximize = FALSE, prediction = TRUE)
-
-gb_model <- xgboost(data = t(train_data), 
-                    label = train_labels_0based, 
-                    nrounds = 100,
-                    subsample = 0.7, 
-                    colsample_bytree = 0.7, 
-                    params = xgb_params)
 
 
 
 
-### calculate model performance in test data -------------------------------------
-
-test_anno %>% 
-  group_by(tumorType) %>% 
-  summarise(n = n())
 
 
-# NEURAL NETWORK 
-
-# scores
-pred_nn_scores <- predict(object = nn_model, t(test_data))
-colnames(pred_nn_scores) <- colnames(test_labels_onehot)
-
-# classes
-pred_nn_class <- apply(pred_nn_scores, 1, function(x){
-  colnames(pred_nn_scores)[which.max(x)]
-})
-
-#merge levels of training and test dataset together and print the confusionMatrix
-table(prediction = pred_nn_class, actual = test_anno$tumorType) %>% 
-  caret::confusionMatrix()
+# compare model performance ------------------------------------------
 
 
+rf_model <- readRDS(file = "./output/rf_model_default.rds")
+xgb_model <- readRDS(file = "./output/xgb_model_default.rds")
+nn_model <- load_model_hdf5(file = "./output/nn_model.hdf5")
 
-# RANDOM FOREST
+# rf predictions
+rf_pred_class <- predict(rf_model, newdata = test_set$x)
+confusionMatrix(as.factor(test_set$y), rf_pred_class)
+rf_pred_scores <- predict(rf_model, newdata = t(betas), type = "prob")
 
-# scores
-pred_rf_scores <- predict(object = rf_model, t(test_data), type = "prob")
+# xgb predictions
+xgb_pred_class <- predict(xgb_model, newdata = t(betas))
+xgb_pred_scores <- predict(rf_model, newdata = t(betas), type = "prob")
 
-# classes
-pred_rf_class <- predict(object = rf_model, t(test_data))
+# nn predictions
+nn_pred_scores <- predict(object = nn_model, x = t(betas))
+rownames(nn_pred_scores) <- colnames(betas)
+colnames(nn_pred_scores) <- colnames(rf_pred_scores)
+nn_pred_class <- apply(nn_pred_scores, 1, function(x) colnames(nn_pred_scores)[which.max(x)]) %>% as.factor
 
-# merge levels of training and test dataset together and print the confusionMatrix
-table(prediction = pred_rf_class, actual = test_anno$tumorType) %>% 
-  caret::confusionMatrix()
+# confusion matrices
+indices_test <- which(anno$cohort == "test", arr.ind = TRUE)
+confusionMatrix(as.factor(anno$tumorType[indices_test]),
+                xgb_pred_class[indices_test])
 
-
-# XGBOOST 
-
-# scores
-pred_xgb_scores <- predict(object = gb_model, newdata = t(test_data))
-pred_xgb_scores <- pred_xgb_scores %>% 
-  matrix(nrow = 7)
-pred_xgb_scores <- t(pred_xgb_scores)
-colnames(pred_xgb_scores) <- c("ACC", "NORM", "PanNEC", "PanNET", "PB", "PDAC", "SPN")
-
-# classes
-pred_xgb_class <- apply(pred_xgb_scores, 1, function(x){
-  colnames(pred_xgb_scores)[which.max(x)]
-})
-
-# merge levels of training and test dataset together and print the confusionMatrix
-table(prediction = pred_xgb_class, actual = test_anno$tumorType) %>% 
-  caret::confusionMatrix()
-
-
-
-### algorithm performance visualization ----------------------------------------------
-
-# add performance to annotation
 test_anno <- test_anno %>% 
   mutate(pred_nn = pred_nn_class, 
          pred_rf = pred_rf_class, 
