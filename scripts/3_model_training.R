@@ -235,11 +235,6 @@ save_model_hdf5(object = nn_model, filepath = "./output/nn_model.hdf5")
 
 
 
-
-
-
-
-
 # compare model performance ------------------------------------------
 
 
@@ -310,6 +305,7 @@ ggsave("model_comparison_accuracies_randforest.png", path= "./plots/")
 anno %>% 
   select(tumorType, absolute, estimate, avg_beta_unfiltered, avg_beta_filtered, conversion, 18:20) %>% 
   GGally::ggpairs()
+ggsave("pairwise_correlations_annotation.png", path= "./plots/")
 
 anno %>% 
   mutate(correct = ifelse(tumorType == pred_rf, "correct", "incorrect")) %>% 
@@ -319,11 +315,57 @@ anno %>%
   theme_classic(base_size = 30) +
   labs(x = "Umap 1", y = "Umap 2")
 
-anno_ext %>% 
-  mutate(correct = as.factor(tumorType == pred_nn)) %>% 
-  ggplot(aes(umap_x, umap_y, colour = correct)) +
-  geom_point(size = 3, alpha = 0.8) +
-  theme_classic(base_size = 30) +
-  labs(x = NULL, y = "Accuracy (test cohort)")
 
 
+
+# look at accuracies at different cutoffs for scores ---------------------------
+
+# determine cutoffs for scores
+cutoffs <- seq(from = 0.3, to = 0.95, length.out = 14)
+real_class <- anno$tumorType[test_indices]
+
+cutoff_nn <- slide_along_cutoff(label_real = real_class, 
+                                label_pred = nn_pred_class[test_indices], 
+                                scores = nn_pred_scores_max[test_indices], 
+                                cutoffs = cutoffs)
+
+cutoff_rf <- slide_along_cutoff(label_real = real_class, 
+                                label_pred = rf_pred_class[test_indices], 
+                                scores = rf_pred_scores_max[test_indices], 
+                                cutoffs = cutoffs)
+
+cutoff_xgb <- slide_along_cutoff(label_real = real_class, 
+                                 label_pred = xgb_pred_class[test_indices], 
+                                 scores = xgb_pred_scores_max[test_indices], 
+                                 cutoffs = cutoffs)
+
+# add name of method
+cutoff_nn <- cutoff_nn %>% 
+  add_column(method = "NN", .before = TRUE)
+
+cutoff_rf <- cutoff_rf %>% 
+  add_column(method = "RF", .before = TRUE)
+
+cutoff_xgb <- cutoff_xgb %>% 
+  add_column(method = "XGB", .before = TRUE)
+
+performance_cutoff <- rbind(cutoff_nn, cutoff_rf, cutoff_xgb)
+rm(cutoff_nn, cutoff_rf, cutoff_xgb)
+
+# plot cutoff vs. predictable / accuracy
+
+performance_cutoff %>% 
+  #filter(method == "neuralNet") %>% 
+  pivot_longer(cols = accuracy:predictable, 
+               names_to = "statistic") %>% 
+  ggplot(aes(cutoff, value, color = statistic)) +
+  geom_point(size = 3) +
+  geom_line() +
+  ylim(c(0.5, 1)) +
+  scale_color_manual(values = branded_colors1) +
+  theme_bw(base_size = 30) +
+  theme(legend.title = element_blank(), 
+        legend.position = "top") +
+  facet_grid(cols = vars(method)) +
+  labs(x = "Cutoff", y = "Accuracy/Predictable (%)")
+ggsave("cutoff_vs_predictable_accuracy.png", path= "./plots/")
