@@ -1,3 +1,3 @@
 # Pancreas-ID
 
-Non-ductal pancreatic tumor classification by whole genome DNA methylation profiling
+This repository contains all code to reproduce analyses from `Verschuur et al. (2023)`. 
