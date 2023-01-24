@@ -16,7 +16,7 @@ library(caret)
 library(doParallel)
 
 source(file = "./scripts/0_functions.R")
-
+source(file = "./scripts/0_branded_colors.R")
 
 # import annotation and data ---------------------------------------------------
 
@@ -248,87 +248,76 @@ xgb_model <- readRDS(file = "./output/xgb_model_default.rds")
 nn_model <- load_model_hdf5(file = "./output/nn_model.hdf5")
 
 # rf predictions
-rf_pred_class <- predict(rf_model, newdata = test_set$x)
-confusionMatrix(as.factor(test_set$y), rf_pred_class)
+rf_pred_class <- predict(rf_model, newdata = t(betas))
 rf_pred_scores <- predict(rf_model, newdata = t(betas), type = "prob")
+rf_pred_scores_max <- apply(rf_pred_scores, 1, max)
 
 # xgb predictions
 xgb_pred_class <- predict(xgb_model, newdata = t(betas))
-xgb_pred_scores <- predict(rf_model, newdata = t(betas), type = "prob")
+xgb_pred_scores <- predict(xgb_model, newdata = t(betas), type = "prob")
+xgb_pred_scores_max <- apply(xgb_pred_scores, 1, max)
 
 # nn predictions
 nn_pred_scores <- predict(object = nn_model, x = t(betas))
-rownames(nn_pred_scores) <- colnames(betas)
+rownames(nn_pred_scores) <- rownames(t(betas))
 colnames(nn_pred_scores) <- colnames(rf_pred_scores)
+nn_pred_scores_max <- apply(nn_pred_scores , 1, max)
 nn_pred_class <- apply(nn_pred_scores, 1, function(x) colnames(nn_pred_scores)[which.max(x)]) %>% as.factor
 
 # confusion matrices
-indices_test <- which(anno$cohort == "test", arr.ind = TRUE)
-confusionMatrix(as.factor(anno$tumorType[indices_test]),
-                xgb_pred_class[indices_test])
+test_indices <- which(anno$cohort == "test", arr.ind = TRUE)
+conf_mat <- list(rf_pred_class, xgb_pred_class, nn_pred_class)
+conf_mat <- lapply(conf_mat, function(x) x[test_indices])
+conf_mat <- lapply(conf_mat, function(x) confusionMatrix(x, test_set$y))
+saveRDS(object = conf_mat, file = "./output/confusion_matrices.rds")
 
-test_anno <- test_anno %>% 
-  mutate(pred_nn = pred_nn_class, 
-         pred_rf = pred_rf_class, 
-         pred_xgb = pred_xgb_class, 
-         pred_scores_nn = apply(pred_nn_scores, 1, max),
-         pred_scores_rf = apply(pred_rf_scores, 1, max), 
-         pred_scores_xgb = apply(pred_xgb_scores, 1, max))
+# plot accuracy per algorithm
+perf_acc <- sapply(conf_mat, function(x) x[["overall"]][c(1, 3, 4)])
+colnames(perf_acc) <- c("rf", "xgb", "nn")
+perf_acc <- as_tibble(t(perf_acc), rownames = "method")
 
-test_anno %>% 
-  mutate(nn = as.integer(tumorType == pred_nn), 
-         rf = as.integer(tumorType == pred_rf), 
-         xgb = as.integer(tumorType == pred_xgb)) %>% 
-  select(nn, rf, xgb) %>% 
-  pivot_longer(cols = everything()) %>% 
-  group_by(name) %>% 
-  summarise(accuracy = sum(value)/n()) %>% 
-  ggplot(aes(name, accuracy, fill = name)) +
+perf_acc  %>% 
+  ggplot(aes(x = method, y = Accuracy, fill = method)) +
   geom_col(width = 0.7) +
-  scale_fill_manual(values = branded_colors1) +
+  scale_fill_manual(values = branded_colors2) +
+  geom_errorbar(aes(ymin = AccuracyLower, ymax = AccuracyUpper), width = 0.3) +
   theme_bw(base_size = 30) +
   theme(legend.position = "none") +
   labs(x = NULL, y = "Accuracy (test cohort)") +
   ylim(0, 1)
-ggsave("accuracy_models.png", path= "./output/")
+ggsave("model_comparison_accuracy_testset.png", path= "./plots/")
 
-test_anno %>% 
-  mutate(nn_corr = as.integer(tumorType == pred_nn)) %>% 
-  group_by(tumorType) %>% 
-  summarise(accuracy = sum(nn_corr) / n()) %>% 
-  ggplot(aes(tumorType, accuracy, fill = tumorType)) +
+
+# plot accuracy across different classes RF
+perf_per_class <- conf_mat[[1]]$byClass %>% 
+  as_tibble %>% 
+  mutate(class = colnames(rf_pred_scores))
+colnames(perf_per_class) <- make.names(colnames(perf_per_class))
+
+perf_per_class %>% 
+  ggplot(aes(class, Balanced.Accuracy, fill = class)) +
   geom_col(width = 0.7) +
   scale_fill_manual(values = branded_colors1) +
   theme_bw(base_size = 30) +
-  theme(legend.position = "none") +
-  labs(x = NULL, y = "Accuracy (test cohort)")
-
-
-x <- test_anno %>% 
-  mutate(nn_corr = as.integer(tumorType == pred_nn),
-         rf_corr = as.integer(tumorType == pred_rf),
-         xgb_corr = as.integer(tumorType == pred_xgb)) %>% 
-  group_by(tumorType) %>% 
-  summarise(sum(nn_corr) / n(), sum(rf_corr) / n(), sum(xgb_corr) / n())
+  theme(legend.position = "none")
+ggsave("model_comparison_accuracies_randforest.png", path= "./plots/")
 
 
 
-### project results onto UMAP --------------------------------------------------
+# project results onto UMAP --------------------------------------------------
 
-class_results <- test_anno %>% 
-  select(arrayId, starts_with("pred"))
 
-anno_ext <- left_join(anno, class_results)
-anno_ext <- anno_ext %>% 
-  mutate(dataset = ifelse(is.na(pred_nn), "train", "test"))
+anno %>% 
+  select(tumorType, absolute, estimate, avg_beta_unfiltered, avg_beta_filtered, conversion, 18:20) %>% 
+  GGally::ggpairs()
 
-anno_ext %>% 
-  mutate(correct = as.integer(tumorType == pred_nn)) %>% 
-  ggplot(aes(umap_x, umap_y, colour = dataset)) +
+anno %>% 
+  mutate(correct = ifelse(tumorType == pred_rf, "correct", "incorrect")) %>% 
+  ggplot(aes(umap_x, umap_y, col = tumorType, shape = correct)) +
   geom_point(size = 3) +
-  scale_colour_manual(values = branded_colors) +
+  scale_colour_manual(values = branded_colors1) +
   theme_classic(base_size = 30) +
-  labs(x = NULL, y = "Accuracy (test cohort)")
+  labs(x = "Umap 1", y = "Umap 2")
 
 anno_ext %>% 
   mutate(correct = as.factor(tumorType == pred_nn)) %>% 
