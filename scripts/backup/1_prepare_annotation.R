@@ -10,7 +10,7 @@ library(tidyverse)
 library(minfi)
 
 
-### load annotation ------------------------------------------------------------
+# load annotation ------------------------------------------------------------
 
 anno_files <- list.files(path = "./annotation/",
                          pattern = ".csv",

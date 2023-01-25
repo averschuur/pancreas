@@ -11,7 +11,26 @@ library(minfi)
 
 
 
-### prepare beta value matrices ------------------------------------------------
+# load annotation ------------------------------------------------------------
+
+anno_files <- list.files(path = "./annotation/",
+                         pattern = ".csv",
+                         full.names = TRUE)
+anno_files <- anno_files[!grepl(x = anno_files, pattern = "*tcga*")]
+anno_files <- anno_files[!grepl(x = anno_files, pattern = "*annotation_umcu_paired_samples*")]
+anno_files <- anno_files[!grepl(x = anno_files, pattern = "*sample_annotation_conversion_scores*")]
+
+
+anno <- lapply(as.list(anno_files), read_csv)
+anno <- Reduce(f = bind_rows, x = anno)
+anno
+
+
+saveRDS(object = anno, file = "./input/sample_annotation.rds")
+
+
+
+# prepare methylation data ------------------------------------------------
 
 idats <- list.files(path = "./input/idat/",
                     recursive = TRUE,
@@ -106,6 +125,21 @@ betas <- cbind(betas_450k[common_probes, ], betas_epic[common_probes, ])
 rm(betas_450k, betas_epic)
 rm(preprocessed_450k, preprocessed_epic)
 rm(common_probes)
+
+
+# double check annotation and beta values correspond
+
+betas <- readRDS(file = "./input/methylation_data.rds")
+betas_filtered <- readRDS(file = "./input/methylation_data_filtered.rds")
+
+all(colnames(betas) %in% anno$arrayId)
+all(anno$arrayId %in% colnames(betas))
+
+all(colnames(betas_filtered) %in% anno$arrayId)
+all(anno$arrayId %in% colnames(betas_filtered))
+
+all(colnames(betas) == colnames(betas_filtered))
+
 
 
 # save beta values data to disk 
