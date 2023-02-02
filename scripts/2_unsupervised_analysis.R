@@ -1,6 +1,6 @@
 # Christoph Geisenberger
 # github: @cgeisenberger
-# last edited 03/01/2023 by AV Verschuur
+# last edited 02/02/2023 by AV Verschuur
 
 
 # libraries
@@ -13,8 +13,7 @@ library(tidyverse)
 library(Rtsne)
 library(umap)
 
-source("./scripts/0_branded_colors.R")
-source("./scripts/0_functions.R")
+source("./scripts/0_helpers.R")
 
 ### load sample annotation and filter ------------------------------------------
 
