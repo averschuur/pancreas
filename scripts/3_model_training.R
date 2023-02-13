@@ -15,15 +15,14 @@ library(caret)
 
 library(doParallel)
 
-source(file = "./scripts/0_functions.R")
-source(file = "./scripts/0_branded_colors.R")
+source(file = "./scripts/0_helpers.R")
 
 # import annotation and data ---------------------------------------------------
 
-anno <- readRDS("./output/sample_annotation_umap_purity.rds")
+anno <- readRDS("./input/sample_annotation_umap_purity.rds")
 betas <- readRDS(file = "./input/pancreas_betas_everything.rds")
 
-top_var_probes <- readRDS(file = "./output/pancreas_top_variable_probes.rds")
+top_var_probes <- readRDS(file = "./input/pancreas_top_variable_probes.rds")
 top_var_probes <- top_var_probes[1:5000]
 
 # filter
@@ -38,7 +37,7 @@ train_groups[train_index$Resample1] <- "test"
 anno <- anno %>% 
   mutate(cohort = train_groups)
 rm(train_index, train_groups)
-#saveRDS(object = anno, "./output/sample_annotation_umap_purity.rds")
+#saveRDS(object = anno, "./input/sample_annotation_umap_purity.rds")
 
 train_set <- list()
 test_set <- list()
@@ -56,8 +55,8 @@ train_set_upsampled <- upSample(x = train_set$x, y = train_set$y, list = TRUE)
 train_set_upsampled$onehot <- to_one_hot(train_set_upsampled$y)
 test_set$onehot <- to_one_hot(test_set$y)
 
-# saveRDS(object = train_set_upsampled, file = "./output/train_set_upsampled.rds")
-# saveRDS(object = test_set, file = "./output/test_set.rds")
+#saveRDS(object = train_set_upsampled, file = "./input/train_set_upsampled.rds")
+#saveRDS(object = test_set, file = "./input/test_set.rds")
 
 
 
@@ -85,7 +84,7 @@ rf_model <- caret::train(x = train_set_upsampled$x,
                          tuneGrid = rf_tunegrid,
                          metric = "Accuracy")
 
-saveRDS(object = rf_model, file = "./output/rf_model_default.rds")
+#saveRDS(object = rf_model, file = "./input/rf_model_default.rds")
 
 rf_pred <- predict(rf_model, newdata = test_set$x)
 confusionMatrix(rf_pred, test_set$y)
@@ -109,7 +108,7 @@ xgb_model <- caret::train(x = train_set_upsampled$x,
                          tuneGrid = xgb_tunegrid,
                          metric = "Accuracy")
 
-saveRDS(object = xgb_model, file = "./output/xgb_model_default.rds")
+#saveRDS(object = xgb_model, file = "./input/xgb_model_default.rds")
 
 xgb_pred <- predict(xgb_model, newdata = test_set$x)
 confusionMatrix(xgb_pred, test_set$y)
@@ -229,7 +228,7 @@ nn_model %>% evaluate(as.matrix(test_set$x), test_set$onehot)
 
 
 # save model
-save_model_hdf5(object = nn_model, filepath = "./output/nn_model.hdf5")
+save_model_hdf5(object = nn_model, filepath = "./input/nn_model.hdf5")
 
 
 
@@ -238,14 +237,15 @@ save_model_hdf5(object = nn_model, filepath = "./output/nn_model.hdf5")
 # compare model performance ------------------------------------------
 
 
-rf_model <- readRDS(file = "./output/rf_model_default.rds")
-xgb_model <- readRDS(file = "./output/xgb_model_default.rds")
+rf_model <- readRDS(file = "./input/rf_model_default.rds")
+xgb_model <- readRDS(file = "./input/xgb_model_default.rds")
 nn_model <- load_model_hdf5(file = "./output/nn_model.hdf5")
 
 # rf predictions
 rf_pred_class <- predict(rf_model, newdata = t(betas))
 rf_pred_scores <- predict(rf_model, newdata = t(betas), type = "prob")
 rf_pred_scores_max <- apply(rf_pred_scores, 1, max)
+rf_pred_class <- apply(rf_pred_scores, 1, function(x) colnames(rf_pred_scores)[which.max(x)]) %>% as.factor
 
 # xgb predictions
 xgb_pred_class <- predict(xgb_model, newdata = t(betas))
@@ -259,12 +259,21 @@ colnames(nn_pred_scores) <- colnames(rf_pred_scores)
 nn_pred_scores_max <- apply(nn_pred_scores , 1, max)
 nn_pred_class <- apply(nn_pred_scores, 1, function(x) colnames(nn_pred_scores)[which.max(x)]) %>% as.factor
 
+# add performance to annotation
+anno <- anno %>% 
+  mutate(pred_nn = nn_pred_class, 
+         pred_rf = rf_pred_class, 
+         pred_xgb = xgb_pred_class, 
+         pred_scores_nn = apply(nn_pred_scores, 1, max),
+         pred_scores_rf = apply(rf_pred_scores, 1, max), 
+         pred_scores_xgb = apply(xgb_pred_scores, 1, max))
+
 # confusion matrices
 test_indices <- which(anno$cohort == "test", arr.ind = TRUE)
 conf_mat <- list(rf_pred_class, xgb_pred_class, nn_pred_class)
 conf_mat <- lapply(conf_mat, function(x) x[test_indices])
 conf_mat <- lapply(conf_mat, function(x) confusionMatrix(x, test_set$y))
-saveRDS(object = conf_mat, file = "./output/confusion_matrices.rds")
+saveRDS(object = conf_mat, file = "./input/confusion_matrices.rds")
 
 # plot accuracy per algorithm
 perf_acc <- sapply(conf_mat, function(x) x[["overall"]][c(1, 3, 4)])
@@ -368,4 +377,4 @@ performance_cutoff %>%
         legend.position = "top") +
   facet_grid(cols = vars(method)) +
   labs(x = "Cutoff", y = "Accuracy/Predictable (%)")
-ggsave("cutoff_vs_predictable_accuracy.png", path= "./plots/")
+ggsave("cutoff_vs_predictable_accuracy.pdf", path= "./plots/")
