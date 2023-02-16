@@ -3,7 +3,8 @@
 # last edited 04/01/2023 by AV Verschuur
 
 
-### Load required packages and sources ----------------------------------------------------------------
+
+# Load packages and source scripts ---------------------------------------------
 
 library(tidyverse)
 library(ggplot2)
@@ -14,12 +15,14 @@ library(randomForest)
 library(Rtsne)
 library(umap)
 
-source("./scripts/0_functions.R")
-source("./scripts/0_branded_colors.R")
+library(pROC)
+
+source("./scripts/0_helpers.R")
+
 
 # load data for pancreas data set ----------------------------------------------
 
-anno <- readRDS("./input/sample_annotation_umap_purity.rds")
+anno <- readRDS("./output/sample_annotation_umap_purity.rds")
 betas <- readRDS(file = "./input/pancreas_betas_everything.rds")
 betas <- betas[, anno$arrayId]
 
@@ -27,29 +30,29 @@ betas <- betas[, anno$arrayId]
 # load data for TCGA cases -----------------------------------------------------
 
 # processing was performed on server
-anno_tcga <- read_csv("./annotation/TCGA/annotation_tcga_subsampled.csv")
-betas_tcga <- readRDS(file = "./input/betas_tcga_subsampled.rds")
-betas_tcga <- betas_tcga[, anno_tcga$arrayId]
+anno_tcga <- read_csv("./input/annotation_tcga_validation.csv")
 
+betas_tcga <- readRDS(file = "./input/betas_tcga_modelprobes.rds")
+betas_tcga <- betas_tcga[, anno_tcga$basename]
 
-# remove some columns from TCGA annotation 
+# rename TCGA columnns
 anno_tcga <- anno_tcga %>% 
-  select(arrayId, sampleName, tumorType)
+  select(basename, tissue) %>% 
+  rename("arrayId" = basename, 
+         "tumorType" = tissue)
 
+# tcga data set stats
 anno_tcga %>% 
   group_by(tumorType) %>% 
   summarise(n = n())
-
-# rename adrenocortical carcinoma 
-anno_tcga$tumorType[anno_tcga$tumorType == "ACC"] <- "ADC"
 
 
 
 # load models and model probes -------------------------------------------------
 
-model_probes <- readRDS(file = "./input/pancreas_top_variable_probes.rds")
-nn_model <- load_model_hdf5(filepath = "./output/model_nn.hdf5")
-rf_model <- readRDS(file = "./output/model_rf.rds")
+model_probes <- readRDS(file = "./output/pancreas_top_variable_probes.rds")[1:5000]
+nn_model <- load_model_hdf5(filepath = "./output/nn_model.hdf5")
+rf_model <- readRDS(file = "./output/rf_model_default.rds")
 
 
 # run data through neural network ----------------------------------------------
@@ -94,32 +97,15 @@ nn_scores_max %>%
 
 # plot score distributions
 nn_scores_max %>% 
-  ggplot(aes(score, fill = class_char)) +
-  geom_density(alpha = 0.4) +
-  theme_bw(20) + facet_wrap(facets = vars(pred_class))
-
+  ggplot(aes(class_char, score, fill = class_char)) +
+  geom_boxplot() +
+  theme_bw(20) + facet_wrap(facets = vars(pred_class)) +
+  theme(legend.position = "none")
 
 # plot ROC curve
 nn_scores_roc <- pROC::roc(nn_scores_max$class_int, nn_scores_max$score)
 plot.roc(nn_scores_roc)
-
-# create tibble with NeuralNet results for each TCGA class
-nn_label_prop <- anno_tcga %>%
-  mutate(nn_class = nn_classes_tcga,
-         nn_scores = apply(nn_scores_tcga, 1, max)) %>%
-  select(tumorType, nn_class) %>% 
-  group_by(tumorType, nn_class) %>% 
-  summarise(n = n()/25) %>% 
-  ungroup %>% 
-  pivot_wider(id_cols = tumorType, names_from = nn_class, values_from = n)
-
-# replace NAs with 0's, plot as heatmap
-nn_label_prop_matrix <- as.matrix(nn_label_prop[, 2:7])
-rownames(nn_label_prop_matrix) <- nn_label_prop$tumorType
-nn_label_prop_matrix[is.na(nn_label_prop_matrix)] <- 0
-
-pheatmap::pheatmap(nn_label_prop_matrix)
-
+nn_scores_roc
 
 
 ### run data through random forest ---------------------------------------------
@@ -133,8 +119,8 @@ rf_scores_tcga_max <- apply(rf_scores_tcga, 1, max)
 rf_scores_pancreas_max <- apply(rf_scores_pancreas, 1, max)
 
 # class
-rf_class_tcga <- predict(object = rf_model, t(betas_tcga[model_probes, ]), type = "response")
-rf_class_pancreas <- predict(object = rf_model, t(betas[model_probes, ]), type = "response")
+rf_class_tcga <- predict(object = rf_model, t(betas_tcga[model_probes, ]), type = "raw")
+rf_class_pancreas <- predict(object = rf_model, t(betas[model_probes, ]), type = "raw")
 
 # combine data
 rf_scores_all <- tibble(class_int = c(rep(0, nrow(rf_scores_tcga)), 
@@ -154,9 +140,13 @@ rf_scores_all %>%
 
 # plot score distributions
 rf_scores_all %>% 
+  filter(pred_class != "NORM") %>% 
   ggplot(aes(score, fill = class_char)) +
   geom_density(alpha = 0.4) +
-  theme_bw(20) + facet_wrap(facets = vars(pred_class))
+  scale_fill_manual(values = branded_colors2) +
+  theme_bw(20) + facet_wrap(facets = vars(pred_class)) +
+  theme(legend.position = "bottom", legend.title = element_blank()) +
+  labs(x = "Random Forest Score", y = "Density")
 
 # calculate AUC, plot ROC
 rf_scores_roc <- with(rf_scores_all, roc(class_int, score))
@@ -164,43 +154,39 @@ rf_scores_roc
 plot.roc(rf_scores_roc)
 
 
-# implement outlier detection algorith ------------------
 
-y <- rf_scores_all$class_int %>% as.vector()
-x  <- rbind(rf_scores_tcga, rf_scores_pancreas)
-split = sample(x = c("train", "val"), size = nrow(x), replace = TRUE, prob = c(0.7, 0.3))
-x_train <- x[split == "train", ]
-x_val <- x[split == "val", ]
-y_train <- y[split == "train"]
-y_val <- y[split == "val"]
+# train outlier detection model ------------------------------------------------
 
-fit_rf <- randomForest(x = x_train, y = as.factor(y_train))
-
-pred_rf_train <- predict(fit_rf, newdata = x_train, type = "prob")
-pred_rf_val <- predict(fit_rf, newdata = x_val, type = "prob")
-
-pred_rf_class_train <- predict(fit_rf, newdata = x_train, type = "class")
-pred_rf_class_val <- predict(fit_rf, newdata = x_val, type = "class")
-
-pred_rf <- tibble(arrayId = c(rownames(x_train), rownames(x_val)), 
-                  outlier_score = c(pred_rf_train[, 1], pred_rf_val[, 1]), 
-                  outlier_class = c(pred_rf_class_train, pred_rf_class_val))
-boxplot(pred_rf_val[, 1] ~ as.factor(y_val))
-
-fit_rf_roc <- roc(y_val, pred_rf[, 1])
-fit_rf_roc
-plot.roc(fit_rf_roc)
-with(fit_rf_roc, plot(thresholds, sensitivities))
-with(fit_rf_roc, plot(thresholds, specificities))
+# split data
+rf_scores_all <- rf_scores_all %>% 
+  mutate(dataset = sample(c("train", "val"), size = nrow(rf_scores_all), replace = TRUE))
 
 
-anno <- left_join(anno, pred_rf)
+log.model <- rf_scores_all %>% 
+  filter(dataset == "train") %>% 
+  glm(class_int ~ score + pred_class , data = ., family = 'binomial')
 
-anno %>% 
-  filter(outlier_score < 0.4) %>% 
-  ggplot(aes(umap_x, umap_y, col = tumorType)) +
-  geom_point() +
-  theme_bw(base_size = 20)
+
+log.pred <- rf_scores_all %>% 
+  filter(dataset == "val") %>%
+  predict(object = log.model, newdata = .)
+
+log.pred <- rf_scores_all %>% 
+  filter(dataset == "val") %>%
+  mutate(logit = log.pred)
+
+log.pred %>% 
+  ggplot(aes(class_char, logit)) +
+  geom_boxplot()
+
+# plot ROC curve
+logit_scores_roc <- log.pred %>%
+  pROC::roc(class_int, logit)
+plot.roc(logit_scores_roc)
+logit_scores_roc
+
+
+
 
 # check umcu samples
 anno_umc <- read_csv("./annotation/annotation_umcu.csv")
@@ -212,13 +198,12 @@ betas_umc <- betas_umc[, anno_umc$arrayId]
 
 
 umc_scores_rf <- predict(object = rf_model, t(betas_umc[model_probes, ]), type = "prob")
-umc_class_rf <- predict(object = rf_model, t(betas_umc[model_probes, ]), type = "class")
+umc_class_rf <- predict(object = rf_model, t(betas_umc[model_probes, ]), type = "raw")
 
 anno_umc <- anno_umc %>% 
   mutate(rf_class = as.vector(umc_class_rf), 
          rf_score = apply(umc_scores_rf, 1, max))
-umc_outlier_class <- predict(fit_rf, newdata = umc_scores_rf)
-umc_outlier_score <- predict(fit_rf, newdata = umc_scores_rf, type = "prob")
+umc_outlier_score <- predict(log.model, newdata = umc_scores_rf)
 
 anno_umc <- anno_umc %>% 
   mutate(outlier = umc_outlier_class)
