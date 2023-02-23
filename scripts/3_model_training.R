@@ -20,9 +20,9 @@ source(file = "./scripts/0_helpers.R")
 # import annotation and data ---------------------------------------------------
 
 anno <- readRDS("./input/sample_annotation_umap_purity.rds")
-betas <- readRDS(file = "./input/pancreas_betas_everything.rds")
+betas <- readRDS(file = "./input/betas_pancreas_everything.rds")
 
-top_var_probes <- readRDS(file = "./input/pancreas_top_variable_probes.rds")
+top_var_probes <- readRDS(file = "./input/pancreas_top_variable_probes_training_set.rds")
 top_var_probes <- top_var_probes[1:5000]
 
 # filter

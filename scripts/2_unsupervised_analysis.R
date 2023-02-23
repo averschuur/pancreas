@@ -60,9 +60,7 @@ anno <- anno %>%
 
 # add bisulfite conversion scores
 
-conv_scores <- read_csv(file = "./annotation/sample_annotation_conversion_scores.csv")
-conv_scores <- conv_scores %>%
-  select(arrayId, conversion)
+conv_scores <- readRDS(file = "./annotation/sample_annotation_conversion_scores.rds")
 
 anno <- left_join(anno, conv_scores)
 

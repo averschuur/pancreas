@@ -7,15 +7,15 @@ library(minfi)
 library(paletteer)
 library(Rtsne)
 
-source("./scripts/functions.R")
+source("./scripts/0_helpers.R")
 
 
 #### load data and annotation 
-arrayRawEpic <- readRDS(file = "./data/preprocessing/arrayRawEpic_ChanJakelSelenicaDiDomenico.rds")
-arrayRaw450k <- readRDS(file = "./data/preprocessing/arrayRaw450k_ChanJakelSelenicaDiDomenico.rds")
-arrayEndo <- readRDS(file = "./data/preprocessing/arrayRawEndo.rds")
-arrayYachida <- readRDS(file = "./data/preprocessing/arrayRawYachida.rds")
-arrayBenhamida <- readRDS(file = "./data/preprocessing/arrayRawBenhamida.rds")
+arrayRawEpic <- readRDS(file = "./input/preprocessing/arrayRawEpic_ChanJakelSelenicaDiDomenico.rds")
+arrayRaw450k <- readRDS(file = "./input/preprocessing/arrayRaw450k_ChanJakelSelenicaDiDomenico.rds")
+arrayEndo <- readRDS(file = "./input/preprocessing/arrayRawEndo.rds")
+arrayYachida <- readRDS(file = "./input/preprocessing/arrayRawYachida.rds")
+arrayBenhamida <- readRDS(file = "./input/preprocessing/arrayRawBenhamida.rds")
 
 # investigate QC measures 1: bisulfite conversion efficiency 
 conv_RawEpic <- getControlBeta(arrayRawEpic, controls = "BISULFITE CONVERSION II") %>% 
@@ -62,14 +62,14 @@ conversion <- full_join(conversion, conv_Yachida)
 conversion[,1] <- as.matrix(conversion[,1]) %>%
   str_extract(pattern = "[0-9]*_R[0-9]{2}C[0-9]{2}$")
 
-#load annotation
-anno <- readRDS("./data/sample_annotation_extended.rds")
+saveRDS(object = conversion, file= "./annotation/sample_annotation_conversion_scores.rds")
 
+#load annotation
+anno <- readRDS("./input/sample_annotation.rds")
 
 # merge conversion scores with annotation
 anno <- anno %>% 
   left_join(conversion)
-saveRDS(object = anno, file= "./data/sample_annotation_conversion scores.rds")
 
 # save as csv
 anno1 <- readRDS("./data/sample_annotation.rds")
@@ -97,14 +97,12 @@ count %>%
   geom_bar(position="fill", stat="identity")
 ggsave("Figure s1_Control Scores by source.pdf", path= "./output/", dpi=500)
 
-# save anno
-write.csv(anno, file= "./annotation/sample_annotation_conversion scores.csv")
 
 # save anno ex bad and medium samples
 anno_ebs <- anno %>%
   subset(good_score1 == "good")
 
-saveRDS(anno_ebs, file ="./data/sample_annotation_extended_ex_bad_samples.rds")
+saveRDS(anno_ebs, file ="./annotation/sample_annotation_conversion_scoresex_bad_samples.csv")
 
 # Prepare for data visualisation
 anno %>%
