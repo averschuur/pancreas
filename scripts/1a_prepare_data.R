@@ -12,7 +12,7 @@ library(doParallel)
 
 
 
-# load annotation ------------------------------------------------------------
+# load annotation --------------------------------------------------------------
 
 anno_files <- list.files(path = "./annotation/",
                          pattern = ".csv",
@@ -26,13 +26,11 @@ anno <- lapply(as.list(anno_files), read_csv)
 anno <- Reduce(f = bind_rows, x = anno)
 anno
 
-saveRDS(object = anno, file = "./input/sample_annotation.rds")
-#anno <- readRDS(file = "./input/sample_annotation_umap_purity.rds")
 
 
-# prepare methylation data ------------------------------------------------
+# prepare methylation data -----------------------------------------------------
 
-idats <- list.files(path = "./input/idat/",
+idats <- list.files(path = "./idat-pancreas/",
                     recursive = TRUE,
                     full.names = TRUE, 
                     pattern = "_Grn.idat")
@@ -47,7 +45,6 @@ idats_450k <- idats[file_size < 10000000]
 raw_epic <- read.metharray(basenames = idats_epic, force = TRUE)
 raw_450k <- read.metharray(basenames = idats_450k)
 
-
 # preprocess data
 preprocessed_epic <- raw_epic %>%
   preprocessNoob(dyeMethod= "single")
@@ -61,12 +58,9 @@ betas_450k <- getBeta(preprocessed_450k)
 common_probes <- intersect(rownames(betas_epic), rownames(betas_450k))
 betas_combined <- cbind(betas_450k[common_probes, ], betas_epic[common_probes, ])
 
-saveRDS(object = betas_combined, file = "./input/pancreas_betas_everything.rds")
-
 # clean up
 rm(raw_epic, raw_450k)
 rm(idats, idats_450k, idats_epic, file_size)
-
 
 # identify probes (1) on X/Y chr, (2) SNPs/multimappers or (3) are crossreactive
 
@@ -87,7 +81,7 @@ filtered_probes$snp <- rownames(betas_450k)[-filtered_probes$snp]
 
 # cross reactive
 filtered_probes$xr <- read_csv("./input/48639-non-specific-probes-Illumina450k.csv", 
-                       col_names = "probe_id")
+                               col_names = "probe_id")
 filtered_probes$xr <- filtered_probes$xr$probe_id[-1] %>% as.character()
 
 # clean up and save to file
@@ -100,18 +94,28 @@ probes_remove <- intersect(probes_remove, rownames(betas_combined))
 probes_remove <- match(probes_remove, rownames(betas_combined))
 
 betas_combined_filtered <- betas_combined[-probes_remove, ]
-saveRDS(object = betas_combined_filtered, 
-        file = "./input/pancreas_betas_filtered.rds")
 
 # clean up
 rm(betas_450k, betas_epic, filtered_probes, probes_remove, common_probes)
 rm(preprocessed_450k, preprocessed_epic)
 
 
-# double check annotation vs. beta values --------------------------------------
+
+# double check annotation vs. beta values, save files to disk ------------------
 
 dim(betas_combined)
 
 all(colnames(betas_combined) == colnames(betas_combined_filtered))
 all(colnames(betas_combined) %in% anno$arrayId)
 all(anno$arrayId %in% colnames(betas_combined))
+
+
+# anno
+saveRDS(object = anno, file = "./input/sample_annotation.rds")
+
+# all betas
+saveRDS(object = betas_combined, file = "./betas_pancreas_everything.rds")
+
+# filtered betas
+saveRDS(object = betas_combined_filtered, 
+        file = "./betas_pancreas_filtered.rds")

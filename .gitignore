@@ -4,7 +4,6 @@
 code-christoph/*
 results/*
 data/*
-output/*
 input/*
 .DS_Store
 *.Rdata

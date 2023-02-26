@@ -1,6 +1,6 @@
 # Christoph Geisenberger
 # github: @cgeisenberger
-# last edited 02/02/2023 by AV Verschuur
+# last edited 26/02/2023 by CG
 
 
 # libraries
@@ -18,6 +18,8 @@ library(caret)
 
 source("./scripts/0_helpers.R")
 
+
+
 # load sample annotation and filter --------------------------------------------
 
 anno <- readRDS("./input/sample_annotation.rds")
@@ -30,6 +32,7 @@ anno <- anno %>%
 
 
 # split into training and testing cohort ---------------------------------------
+
 set.seed(12345678)
 train_index <- createDataPartition(as.factor(anno$tumorType), 
                                    times = 1, list = TRUE)
@@ -59,13 +62,18 @@ anno <- anno %>%
          avg_beta_unfiltered = apply(betas, 2, mean, na.rm = TRUE))
 
 # add bisulfite conversion scores
-
-conv_scores <- readRDS(file = "./annotation/sample_annotation_conversion_scores.rds")
-
+conv_scores <- readRDS(file = "./annotation/sample_annotation_conversion_scores.csv")
 anno <- left_join(anno, conv_scores)
 
 
+
 # plot basic statistics for the data set ---------------------------------------
+
+# overview of all variables
+anno %>% 
+  select(-c(arrayId, source, sampleName, location)) %>% 
+  GGally::ggpairs()
+
 
 # number of cases
 anno %>% 
@@ -145,12 +153,13 @@ anno <- anno %>%
 # determine most variable probes across dataset and subset beta values
 probe_var <- apply(betas[, anno$cohort == "train"], 1, var)
 probes_topvar <- rownames(betas)[order(probe_var, decreasing = TRUE)]
-saveRDS(object = probes_topvar, file = "./input/pancreas_top_variable_probes_training_set.rds")
+saveRDS(object = probes_topvar, file = "./output/pancreas_top_variable_probes_training_set.rds")
 
 # pick betas for 5,000 top variable probes
 betas_topvar <- betas[probes_topvar[1:5000], ]
 
 # run UMAP
+set.seed(45098)
 umap_settings <- umap.defaults
 umap_settings$n_neighbors = 15
 umap_settings$min_dist = 0.2
@@ -161,8 +170,8 @@ anno <- anno %>%
   mutate(umap_x = umap$layout[, 1], 
          umap_y = umap$layout[, 2])
 
-saveRDS(object = umap, file = "./input/umap_model.rds")
-saveRDS(object = anno, file = "./input/sample_annotation_umap_purity.rds")
+saveRDS(object = umap, file = "./output/umap_model.rds")
+saveRDS(object = anno, file = "./output/sample_annotation_umap_purity.rds")
 
 
 # plot UMAP
@@ -178,7 +187,7 @@ anno %>%
 
 anno %>% 
   ggplot(aes(umap_x, umap_y, col = conversion)) +
-  geom_point(size = 3) +
+  geom_point(size = 5) +
   paletteer::scale_color_paletteer_c("grDevices::Blue-Red 2") +
   theme_classic(base_size = 24) +
   theme(axis.text.y = element_blank(), 
@@ -191,7 +200,7 @@ anno %>%
 
 anno %>% 
   ggplot(aes(umap_x, umap_y, col = absolute)) +
-  geom_point(size = 3) +
+  geom_point(size = 5) +
   paletteer::scale_color_paletteer_c("grDevices::Blue-Red 2") +
   theme_classic(base_size = 24) +
   theme(axis.text.y = element_blank(), 
