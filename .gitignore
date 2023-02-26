@@ -4,6 +4,7 @@
 code-christoph/*
 results/*
 data/*
+test/*
 input/*
 .DS_Store
 *.Rdata
@@ -18,3 +19,4 @@ input/*
 .git_bug
 .gitbug2
 results/Thumbs.db
+%
