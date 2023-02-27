@@ -4,8 +4,8 @@
 code-christoph/*
 results/*
 data/*
-output/*
 input/*
+backup AV/*
 .DS_Store
 *.Rdata
 .Ruserdata
