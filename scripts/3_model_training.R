@@ -1,6 +1,6 @@
 # Christoph Geisenberger
 # github: @cgeisenberger
-# last edit 16/01/2023 (CG)
+# last edit 26/02/2023 (CG)
 
 
 # load libraries
@@ -17,28 +17,21 @@ library(doParallel)
 
 source(file = "./scripts/0_helpers.R")
 
+
+
 # import annotation and data ---------------------------------------------------
 
-anno <- readRDS("./input/sample_annotation_umap_purity.rds")
+anno <- readRDS("./output/sample_annotation_umap_purity.rds")
 betas <- readRDS(file = "./input/betas_pancreas_everything.rds")
 
-top_var_probes <- readRDS(file = "./input/pancreas_top_variable_probes_training_set.rds")
+# pick 5,000 most variable probes
+top_var_probes <- readRDS(file = "./output/pancreas_top_variable_probes_training_set.rds")
 top_var_probes <- top_var_probes[1:5000]
 
 # filter
 betas <- betas[top_var_probes, anno$arrayId]
 
-# split into training and testing cohort (50/50)
-set.seed(1234312)
-train_index <- createDataPartition(as.factor(anno$tumorType), times = 1, list = TRUE)
-train_groups <- rep("train", nrow(anno))
-train_groups[train_index$Resample1] <- "test"
-
-anno <- anno %>% 
-  mutate(cohort = train_groups)
-rm(train_index, train_groups)
-#saveRDS(object = anno, "./input/sample_annotation_umap_purity.rds")
-
+# split data
 train_set <- list()
 test_set <- list()
 
@@ -49,14 +42,18 @@ test_set$x <- t(betas[, anno$cohort == "test"])
 test_set$y <- as.factor(anno$tumorType[anno$cohort == "test"])
 
 # upsample the training cohort
+set.seed(234234)
 train_set_upsampled <- upSample(x = train_set$x, y = train_set$y, list = TRUE)
 
 # add one-hot converted y for neural networks
 train_set_upsampled$onehot <- to_one_hot(train_set_upsampled$y)
 test_set$onehot <- to_one_hot(test_set$y)
 
-#saveRDS(object = train_set_upsampled, file = "./input/train_set_upsampled.rds")
-#saveRDS(object = test_set, file = "./input/test_set.rds")
+saveRDS(object = train_set_upsampled, file = "./output/train_set_upsampled.rds")
+saveRDS(object = test_set, file = "./output/test_set.rds")
+
+test_up <- readRDS("./output/train_set_upsampled.rds")
+test <- readRDS("./output/test_set.rds")
 
 
 
@@ -84,10 +81,12 @@ rf_model <- caret::train(x = train_set_upsampled$x,
                          tuneGrid = rf_tunegrid,
                          metric = "Accuracy")
 
-#saveRDS(object = rf_model, file = "./input/rf_model_default.rds")
-
 rf_pred <- predict(rf_model, newdata = test_set$x)
-confusionMatrix(rf_pred, test_set$y)
+rf_cfmatrix <- confusionMatrix(rf_pred, test_set$y)
+rf_cfmatrix
+
+saveRDS(object = rf_model, file = "./output/rf_model_default.rds")
+saveRDS(object = rf_cfmatrix, file = "./output/rf_confusion_matrix.rds")
 
 
 
@@ -108,10 +107,12 @@ xgb_model <- caret::train(x = train_set_upsampled$x,
                          tuneGrid = xgb_tunegrid,
                          metric = "Accuracy")
 
-#saveRDS(object = xgb_model, file = "./input/xgb_model_default.rds")
-
 xgb_pred <- predict(xgb_model, newdata = test_set$x)
-confusionMatrix(xgb_pred, test_set$y)
+xgb_cfmatrix <- confusionMatrix(xgb_pred, test_set$y)
+xgb_cfmatrix
+
+saveRDS(object = xgb_model, file = "./output/xgb_model_default.rds")
+saveRDS(object = xgb_cfmatrix, file = "./output/xgb_confusion_matrix.rds")
 
 
 
@@ -142,6 +143,7 @@ build_model <- function() {
 
 
 ## run cross-validation -------------------------
+
 perf_hist <- NULL
 
 for(j in 1:cv_reps){
@@ -176,7 +178,6 @@ for(j in 1:cv_reps){
 
 colnames(perf_hist) <- c("rep", "fold", "epoch", "acc_train", "acc_test")
 perf_hist <- as_tibble(perf_hist)
-
 
 perf_hist %>%
   group_by(epoch) %>%
@@ -226,19 +227,16 @@ nn_model %>% fit(
 # check overall accuracy:
 nn_model %>% evaluate(as.matrix(test_set$x), test_set$onehot)
 
-
-# save model
-save_model_hdf5(object = nn_model, filepath = "./input/nn_model.hdf5")
-
-
+# save model and performance history
+save_model_hdf5(object = nn_model, filepath = "./output/nn_model.hdf5")
+saveRDS(object = perf_hist, file = "./output/nn_model_performance_history.rds")
 
 
 
 # compare model performance ------------------------------------------
 
-
-rf_model <- readRDS(file = "./input/rf_model_default.rds")
-xgb_model <- readRDS(file = "./input/xgb_model_default.rds")
+rf_model <- readRDS(file = "./output/rf_model_default.rds")
+xgb_model <- readRDS(file = "./output/xgb_model_default.rds")
 nn_model <- load_model_hdf5(file = "./output/nn_model.hdf5")
 
 # rf predictions
@@ -310,7 +308,6 @@ ggsave("model_comparison_accuracies_randforest.png", path= "./plots/")
 
 # project results onto UMAP --------------------------------------------------
 
-
 anno %>% 
   select(tumorType, absolute, estimate, avg_beta_unfiltered, avg_beta_filtered, conversion, 18:20) %>% 
   GGally::ggpairs()
@@ -323,7 +320,6 @@ anno %>%
   scale_colour_manual(values = branded_colors1) +
   theme_classic(base_size = 30) +
   labs(x = "Umap 1", y = "Umap 2")
-
 
 
 
