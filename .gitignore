@@ -4,8 +4,12 @@
 code-christoph/*
 results/*
 data/*
+<<<<<<< HEAD
+=======
 test/*
+>>>>>>> 47a5924fa083a9a4d75d6e7e56d0928e4f20a2b5
 input/*
+backup AV/*
 .DS_Store
 *.Rdata
 .Ruserdata
