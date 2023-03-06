@@ -271,7 +271,7 @@ test_indices <- which(anno$cohort == "test", arr.ind = TRUE)
 conf_mat <- list(rf_pred_class, xgb_pred_class, nn_pred_class)
 conf_mat <- lapply(conf_mat, function(x) x[test_indices])
 conf_mat <- lapply(conf_mat, function(x) confusionMatrix(x, test_set$y))
-saveRDS(object = conf_mat, file = "./input/confusion_matrices.rds")
+saveRDS(object = conf_mat, file = "./output/confusion_matrices.rds")
 
 # plot accuracy per algorithm
 perf_acc <- sapply(conf_mat, function(x) x[["overall"]][c(1, 3, 4)])

@@ -115,10 +115,6 @@ nn_scores_roc
 
 ### run data through random forest ---------------------------------------------
 
-heatmap_anno <- as.data.frame(anno_tcga[, 2])
-rownames(heatmap_anno) <- anno_tcga$arrayId
-pheatmap::pheatmap(rf_scores_tcga, annotation_row = heatmap_anno, show_rownames = FALSE)
-
 # RF predictions
 rf_scores_tcga <- predict(object = rf_model, t(betas_tcga), type = "prob")
 rf_scores_pancreas <- predict(object = rf_model, t(betas), type = "prob")
@@ -132,23 +128,23 @@ rf_class_tcga <- predict(object = rf_model, t(betas_tcga), type = "raw")
 rf_class_pancreas <- predict(object = rf_model, t(betas), type = "raw")
 
 # combine data
-rf_scores_all <- tibble(arrayId = c(rownames(rf_scores_tcga), 
-                                    rownames(rf_scores_pancreas)), 
-                        class_int = c(rep(0, nrow(rf_scores_tcga)), 
-                                      rep(1, nrow(rf_scores_pancreas))), 
-                        score = c(rf_scores_tcga_max, rf_scores_pancreas_max))
-
-rf_scores_all <- rf_scores_all %>%
-  mutate(class_char = ifelse(class_int == 0, "tcga", "pancreas"), 
-         pred_class = c(as.character(rf_class_tcga), as.character(rf_class_pancreas)))
+rf_data <- bind_rows(as_tibble(rf_scores_pancreas, rownames = "arrayId"), 
+                     as_tibble(rf_scores_tcga, rownames = "arrayId"))
+rf_data <- rf_data %>% 
+  mutate(winning_class = c(rf_class_pancreas, rf_class_tcga), 
+         winning_score = c(rf_scores_pancreas_max, rf_scores_tcga_max), 
+         tumorType = c(anno$tumorType, anno_tcga$tumorType),
+         class_int = c(rep(1, length(rf_class_pancreas)), rep(0, length(rf_class_tcga))),
+         class_char = ifelse(class_int == 0, "outlier", "pancreas"))
 
 
 # plot distribution for TCGA classification results
-rf_scores_all %>% 
-  filter(class_char == "tcga") %>% 
-  group_by(pred_class) %>% 
-  summarise(n = n()/nrow(rf_scores_all)) %>% 
-  ggplot(aes(pred_class, n, fill = pred_class)) +
+rf_data %>% 
+  filter(class_char == "outlier") %>% 
+  group_by(winning_class) %>% 
+  summarise(n = n()) %>% 
+  mutate(prop = n/sum(n)*100) %>% 
+  ggplot(aes(winning_class, prop, fill = winning_class)) +
   geom_col() +
   theme_bw(base_size = 24) +
   labs(x = "Predicted class", y = "Proportion of TCGA samples") +
@@ -156,81 +152,118 @@ rf_scores_all %>%
   scale_fill_manual(values = branded_colors3)
 
 # plot score distribution 
-rf_scores_all %>% 
-  ggplot(aes(class_char, score, fill = class_char)) +
+rf_data %>% 
+  ggplot(aes(class_char, winning_score, fill = class_char)) +
   geom_boxplot(alpha = 0.5) +
   theme_bw(base_size = 20) +
   scale_fill_manual(values = branded_colors2) +
   labs(x = NULL, y = "Random Forest Score")
 
 # plot score distribution with resolution per class
-rf_scores_all %>% 
-  filter(pred_class %in% c("ACC", "PanNET", "PDAC")) %>% 
-  ggplot(aes(class_char, score, fill = class_char)) +
-  scale_fill_manual(values = branded_colors2) +
+rf_data %>% 
+  filter(winning_class %in% c("ACC", "PanNET", "PDAC")) %>% 
+  ggplot(aes(class_char, winning_score, fill = winning_class)) +
+  scale_fill_manual(values = branded_colors3) +
   geom_boxplot(alpha = 0.5) +
   theme_bw(base_size = 20) +
-  facet_wrap(facets = vars(pred_class)) +
+  facet_wrap(facets = vars(winning_class)) +
   theme(legend.position = "none") +
-  labs(x = NULL, y = NULL)
+  labs(x = NULL, y = "Random Forest Score")
 
 # calculate AUC, plot ROC
-rf_scores_roc <- with(rf_scores_all, roc(class_int, score))
-rf_scores_roc
-plot.roc(rf_scores_roc)
+rf_data_roc <- with(rf_data, roc(class_int, winning_score))
+rf_data_roc
+plot.roc(rf_data_roc)
 
 
 
 # train outlier detection model ------------------------------------------------
 
-# split data
-rf_scores_all <- rf_scores_all %>% 
-  mutate(dataset = sample(c("train", "val"), size = nrow(rf_scores_all), replace = TRUE))
+# split data into train and test cohort
+set.seed(23432)
+rf_data <- rf_data %>% 
+  mutate(dataset = sample(c("train", "test"), size = nrow(rf_data), replace = TRUE))
 
-od_model <- rf_scores_all %>% 
-  filter(dataset == "train") %>% 
-  glm(class_int ~ score + pred_class , data = ., family = 'binomial')
+od_model <- rf_data %>% 
+  filter(dataset == "train") %>%
+  glm(class_int ~ winning_score + winning_class, data = ., family = 'binomial')
+summary(od_model)
 
-od_pred <- rf_scores_all %>%
-  predict(object = od_model, newdata = .)
+od_pred <- rf_data %>%
+  predict(object = od_model, newdata = ., type = "response")
 
-rf_scores_all <- rf_scores_all %>% 
-  mutate(od_logit = od_pred)
+rf_data <- rf_data %>% 
+  mutate(od_prob = od_pred, 
+         od_class = ifelse(od_prob > 0.5, "pancreas", "outlier"))
 
-# convert logit to class
-rf_scores_all <- rf_scores_all %>% 
-  mutate(od_class = ifelse(od_logit > 0, "pancreas", "outlier"))
-
-# plot logit scores
-rf_scores_all %>% 
-  ggplot(aes(class_char, od_logit, fill = class_char)) +
+# plot outlier probability
+rf_data %>% 
+  ggplot(aes(class_char, od_prob, fill = class_char)) +
   geom_boxplot(alpha = 0.5) +
-  theme_bw(base_size = 20) +
+  geom_hline(yintercept = 0.5, lty = 2, col = "steelblue") +
+  theme_bw(base_size = 24) +
   theme(legend.position = "none") +
-  labs(x = NULL, y = NULL) +
+  labs(x = NULL, y = "Outlier Probability") +
   scale_fill_manual(values = branded_colors2)
 
 # plot ROC curve
-logit_scores_roc <- rf_scores_all %>%
-  pROC::roc(class_int, od_logit)
-plot.roc(logit_scores_roc)
-logit_scores_roc
+od_prob_roc <- rf_data %>%
+  pROC::roc(class_int, od_prob)
+plot.roc(od_prob_roc)
+od_prob_roc
 
-# confusion matrix
-rf_scores_all %>%  
-  filter(dataset == "val") %>% 
+rf_data %>% 
+  filter(dataset == "test") %>%
   with(., table(class_char, od_class))
 
-# add outlier information back to pancreas annotation 
-anno <- left_join(anno, rf_scores_all[, c("arrayId", "od_logit", "od_class")])
 
-with(rf_scores_all, table(class_char, od_class))
 
-### plot UMAP with outlier detection results -----------------------------------
+# use different cutoffs for outlier probability
 
-table(anno$od_class)
+cutoffs <- seq(from = 0, to = 0.95, length.out = 20)
 
-anno %>% 
-  ggplot(aes(umap_x, umap_y, col = tumorType, shape = od_class)) +
-  geom_point(size = 5) +
-  theme_classic(base_size = 10)
+real_class <- rf_data %>% 
+  filter(dataset == "test") %>% 
+  pull(class_char)
+real_class <- ifelse(real_class == "pancreas", "pancreas", "outlier")
+
+pred_class <- rf_data %>% 
+  filter(dataset == "test") %>% 
+  pull(od_class) %>% 
+  as.character()
+
+score <- rf_data %>% 
+  filter(dataset == "test") %>% 
+  pull(od_prob)
+
+pass <- NULL
+dropout <- NULL
+
+for (i in 1:length(cutoffs)){
+  pass_c <- score[real_class == "outlier"]
+  pass_c <- sum(pass_c >= cutoffs[i])/length(pass_c)
+  pass <- c(pass, pass_c)
+  dropout_c <- score[real_class == "pancreas"]
+  dropout_c <- sum(dropout_c < cutoffs[i])/length(dropout_c)
+  dropout <- c(dropout, dropout_c)
+}
+
+cutoff_data <- tibble(cutoff = cutoffs, 
+                         pass = pass * 100, 
+                         dropout = dropout * 100)
+
+cutoff_data %>% 
+  pivot_longer(cols = -cutoff) %>% 
+  filter(cutoff > 0) %>% 
+  ggplot(aes(cutoff, value, col = name)) + 
+    geom_line(lwd = 2) +
+  geom_vline(xintercept = 0.5, col = "steelblue", lty = 2) +
+  facet_wrap(facets = vars(name), scales = "free", ncol = 1) +
+  theme_bw(base_size = 24) +
+  theme(legend.position = "none", legend.title = element_blank()) +
+  labs(x = "Cutoff (outlier prob)", y = "Samples (%)")
+
+
+### save results to disk ------------------------
+saveRDS(object = od_model, file = "./output/outlier_det_model.rds")
+saveRDS(object = rf_data, file = "./output/outlier_det_results.rds")
