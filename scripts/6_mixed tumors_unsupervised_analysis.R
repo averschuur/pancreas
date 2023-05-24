@@ -25,8 +25,6 @@ betas <- betas[, anno$arrayId]
 
 # obtain model performance 
 rf_model <- readRDS(file = "./output/rf_model_default.rds")
-#xgb_model <- readRDS(file = "./output/xgb_model_default.rds")
-#nn_model <- load_model_hdf5(file = "./output/nn_model.hdf5")
 
 # rf predictions
 rf_pred_class <- predict(rf_model, newdata = t(betas))
