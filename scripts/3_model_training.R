@@ -311,48 +311,10 @@ ggsave("model_comparison_accuracies_randforest.png", path= "./plots/")
 
 
 
-# project results onto UMAP --------------------------------------------------
-
-anno %>% 
-  select(tumorType, absolute, estimate, avg_beta_unfiltered, avg_beta_filtered, conversion, 18:20) %>% 
-  GGally::ggpairs()
-ggsave("pairwise_correlations_annotation.png", path= "./plots/")
-
-anno %>% 
-  mutate(correct = ifelse(tumorType == pred_rf, "correct", "incorrect")) %>% 
-  ggplot(aes(umap_x, umap_y, col = tumorType, shape = correct)) +
-  geom_point(size = 3) +
-  scale_colour_manual(values = branded_colors1) +
-  theme_classic(base_size = 30) +
-  labs(x = "Umap 1", y = "Umap 2")
-
-
-### look in tp misclassified cases
-# random forest
-incorrect_rf <- anno %>% 
-  mutate(correct = ifelse(tumorType == pred_rf, "correct", "incorrect")) %>%
-  subset(correct == "incorrect")
-
-correct_rf <- anno %>% 
-  mutate(correct = ifelse(tumorType == pred_rf, "correct", "incorrect")) %>%
-  subset(correct == "correct")
-
-# random forest
-incorrect_nn <- anno %>% 
-  mutate(correct = ifelse(tumorType == pred_nn, "correct", "incorrect")) %>%
-  subset(correct == "incorrect")
-
-# random forest
-incorrect_xgb <- anno %>% 
-  mutate(correct = ifelse(tumorType == pred_xgb, "correct", "incorrect")) %>%
-  subset(correct == "incorrect")
-
-
-
-# look at accuracies at different cutoffs for scores ---------------------------
+### look at accuracies at different cutoffs for scores ---------------------------
 
 # determine cutoffs for scores
-cutoffs <- seq(from = 0.3, to = 0.95, length.out = 14)
+cutoffs <- seq(from = 0.1, to = 0.95, length.out = 18)
 real_class <- anno$tumorType[test_indices]
 
 cutoff_nn <- slide_along_cutoff(label_real = real_class, 
@@ -384,19 +346,64 @@ performance_cutoff <- rbind(cutoff_nn, cutoff_rf, cutoff_xgb)
 rm(cutoff_nn, cutoff_rf, cutoff_xgb)
 
 # plot cutoff vs. predictable / accuracy
-
 performance_cutoff %>% 
-  #filter(method == "neuralNet") %>% 
+  #filter(method == "RF") %>% 
+  #filter(method == "XGB") %>% 
+  #filter(method == "NN") %>% 
   pivot_longer(cols = accuracy:predictable, 
                names_to = "statistic") %>% 
   ggplot(aes(cutoff, value, color = statistic)) +
   geom_point(size = 3) +
   geom_line() +
-  ylim(c(0.5, 1)) +
   scale_color_manual(values = branded_colors1) +
   theme_bw(base_size = 30) +
   theme(legend.title = element_blank(), 
         legend.position = "top") +
   facet_grid(cols = vars(method)) +
   labs(x = "Cutoff", y = "Accuracy/Predictable (%)")
-ggsave("cutoff_vs_predictable_accuracy.pdf", path= "./plots/")
+ggsave("Figure 3DEF_cutoff_vs_predictable_accuracy.pdf", path= "./plots/")
+
+### project results onto UMAP --------------------------------------------------
+
+anno %>% 
+  select(tumorType, absolute, estimate, avg_beta_unfiltered, avg_beta_filtered, conversion, 18:20) %>% 
+  GGally::ggpairs()
+ggsave("pairwise_correlations_annotation.png", path= "./plots/")
+
+anno %>% 
+  mutate(correct = ifelse(tumorType == pred_rf, "correct", "incorrect")) %>% 
+  ggplot(aes(umap_x, umap_y, col = tumorType, shape = correct)) +
+  geom_point(size = 3) +
+  scale_colour_manual(values = branded_colors1) +
+  theme_classic(base_size = 30) +
+  labs(x = "Umap 1", y = "Umap 2")
+
+### look in to misclassified cases ---------------------------------------------------------------------------------------------------------------------
+# random forest
+incorrect_rf <- anno %>% 
+  mutate(correct = ifelse(tumorType == pred_rf, "correct", "incorrect")) %>%
+  subset(correct == "incorrect")
+
+correct_rf <- anno %>% 
+  mutate(correct = ifelse(tumorType == pred_rf, "correct", "incorrect")) %>%
+  subset(correct == "correct")
+
+# random forest
+incorrect_nn <- anno %>% 
+  mutate(correct = ifelse(tumorType == pred_nn, "correct", "incorrect")) %>%
+  subset(correct == "incorrect")
+
+# random forest
+incorrect_xgb <- anno %>% 
+  mutate(correct = ifelse(tumorType == pred_xgb, "correct", "incorrect")) %>%
+  subset(correct == "incorrect")
+
+### look in to misclustered cases
+cluster <- as.data.frame(c("9855358054_R03C02", "203584330069_R05C01", "203197470021_R05C01", "203584330069_R04C01","201325940151_R04C01", "9769100027_R04C01", "206601450125_R05C01", "9769100039_R06C02", "203175700063_R01C01", "200360420007_R04C01", "200360420008_R06C01", "206601450049_R06C01", "202226320010_R08C01", "201325940152_R08C01", "9855358055_R05C02", "9305651119_R06C02"))
+colnames(cluster) <- "arrayId"
+
+cluster <- left_join(cluster, anno) %>%
+  mutate(correct = ifelse(tumorType == pred_rf, "correct", "incorrect"))
+
+
+
