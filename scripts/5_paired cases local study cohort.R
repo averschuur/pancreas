@@ -9,8 +9,7 @@ library(tidyverse)
 library(ggplot2)
 library(minfi)
 
-source("./scripts/0_functions.R")
-source("./scripts/0_branded_colors.R")
+source("./scripts/0_helpers.R")
 
 
 # load annotation, start from raw data
@@ -72,6 +71,7 @@ test %>%
   ggplot(aes(source, cor, col = as.factor(matched))) +
   geom_jitter(width = 0.1) +
   theme_classic(base_size = 20)
+ggsave("matched cases.pdf", path= "./plots/", dpi=500)
 
 test %>% 
   ggplot(aes(as.factor(matched), cor)) +

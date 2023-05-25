@@ -99,6 +99,72 @@ rf_data %>%
     panel.grid = element_blank())
 ggsave("Figure 4_RF score distributions for the three classes.pdf", width = 8, height = 3, units = "in", path= "./plots/", dpi=500)
 
+### stats ACC
+rf_data_ACC <- rf_data %>%
+  filter(winning_class %in% "ACC")
+
+rf_data_ACC %>%
+  group_by(class_char) %>% 
+  summarise(n = n())
+#1 outlier       76
+#2 pancreas      48
+  
+t.test(rf_data_ACC$winning_score ~ rf_data_ACC$class_char,  paired = F)
+#Welch Two Sample t-test
+
+#data:  rf_data_ACC$winning_score by rf_data_ACC$class_char
+#t = -17.655, df = 49.826, p-value < 0.00000000000000022
+#alternative hypothesis: true difference in means between group outlier and group pancreas is not equal to 0
+#95 percent confidence interval:
+#  -0.5749651 -0.4574954
+#sample estimates:
+#  mean in group outlier mean in group pancreas 
+#0.2953947              0.8116250 
+
+t.test(rf_data_ACC$winning_score ~ rf_data_ACC$class_char,  paired = F, var.equal=TRUE)
+#Two Sample t-test
+
+#data:  rf_data_ACC$winning_score by rf_data_ACC$class_char
+#t = -21.791, df = 122, p-value < 0.00000000000000022
+#alternative hypothesis: true difference in means between group outlier and group pancreas is not equal to 0
+#95 percent confidence interval:
+#  -0.5631273 -0.4693332
+#sample estimates:
+#  mean in group outlier mean in group pancreas 
+#0.2953947              0.8116250 
+
+### stats pNET
+rf_data_pNET <-rf_data %>%
+  filter(winning_class %in% "PanNET")
+
+t.test(rf_data_pNET$winning_score ~ rf_data_pNET$class_char,  paired = F, var.equal=TRUE)
+#Two Sample t-test
+
+#data:  rf_data_pNET$winning_score by rf_data_pNET$class_char
+#t = -29.068, df = 394, p-value < 0.00000000000000022
+#alternative hypothesis: true difference in means between group outlier and group pancreas is not equal to 0
+#95 percent confidence interval:
+#  -0.4917732 -0.4294649
+#sample estimates:
+#  mean in group outlier mean in group pancreas 
+#0.4131111              0.8737302
+
+### stats PDAC
+rf_data_PDAC <-rf_data %>%
+  filter(winning_class %in% "PanNET")
+
+t.test(rf_data_PDAC$winning_score ~ rf_data_PDAC$class_char,  paired = F, var.equal=TRUE)
+#Two Sample t-test
+
+#data:  rf_data_PDAC$winning_score by rf_data_PDAC$class_char
+#t = -29.068, df = 394, p-value < 0.00000000000000022
+#alternative hypothesis: true difference in means between group outlier and group pancreas is not equal to 0
+#95 percent confidence interval:
+#  -0.4917732 -0.4294649
+#sample estimates:
+#  mean in group outlier mean in group pancreas 
+#0.4131111              0.8737302 
+
 ### Outlier probability
 rf_data %>% 
   ggplot(aes(class_char, od_prob, fill = class_char)) +
