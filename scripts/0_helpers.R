@@ -8,6 +8,8 @@ branded_colors3 <- c("#ef476f", "#ffd166", "#06d6a0", "#118ab2", "#073b4c")
 
 
 
+
+
 # detect idats
 detect_idats <- function(dir){
   
@@ -110,3 +112,17 @@ save_pheatmap_pdf <- function(x, filename, width=30, height=7) {
   grid::grid.draw(x$gtable)
   dev.off()
 }
+
+
+
+
+# miscellaneous ----------------------------------------------------------------
+
+entropy <- function(x, na.rm = TRUE){
+  if(na.rm){
+    e <- -sum(x[!x == 0] * log2(x[!x == 0]))
+  } else {
+    e <- -sum(x * log2(x))
+  }
+}
+
