@@ -114,8 +114,8 @@ all(anno$arrayId %in% colnames(betas_combined))
 saveRDS(object = anno, file = "./input/sample_annotation.rds")
 
 # all betas
-saveRDS(object = betas_combined, file = "./betas_pancreas_everything.rds")
+saveRDS(object = betas_combined, file = "./input/betas_pancreas_everything.rds")
 
 # filtered betas
 saveRDS(object = betas_combined_filtered, 
-        file = "./betas_pancreas_filtered.rds")
+        file = "./input/betas_pancreas_filtered.rds")

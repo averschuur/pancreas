@@ -327,8 +327,9 @@ anno %>%
   labs(x = "Umap 1", y = "Umap 2")
 
 
-### look in tp misclassified cases
-# random forest
+### look into misclassified cases
+
+# RF
 incorrect_rf <- anno %>% 
   mutate(correct = ifelse(tumorType == pred_rf, "correct", "incorrect")) %>%
   subset(correct == "incorrect")
@@ -337,12 +338,12 @@ correct_rf <- anno %>%
   mutate(correct = ifelse(tumorType == pred_rf, "correct", "incorrect")) %>%
   subset(correct == "correct")
 
-# random forest
+# NN
 incorrect_nn <- anno %>% 
   mutate(correct = ifelse(tumorType == pred_nn, "correct", "incorrect")) %>%
   subset(correct == "incorrect")
 
-# random forest
+# XGB
 incorrect_xgb <- anno %>% 
   mutate(correct = ifelse(tumorType == pred_xgb, "correct", "incorrect")) %>%
   subset(correct == "incorrect")

@@ -24,7 +24,7 @@ source("./scripts/0_helpers.R")
 
 anno <- readRDS("./input/sample_annotation.rds")
 
-# keep primaries (PanNET, ACC, SPN and PDAC) and normal pancreas, filter out UMC
+# keep primaries (PanNET, PanNEC, ACC, SPN, PB and PDAC) and normal pancreas (NORM)
 anno <- anno %>% 
   filter(tumorType %in% c("PanNET", "ACC", "SPN", "PDAC", "NORM", "PanNEC", "PB")) %>% 
   filter(location %in% c("primary", "pancreas"))
