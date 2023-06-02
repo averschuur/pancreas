@@ -74,14 +74,13 @@ anno_normal %>%
   theme_bw(base_size = 24) +
   theme(legend.position = "none") +
   labs(x = NULL, y = "Control Score") +
-  scale_fill_manual(values = branded_colors)
+  scale_fill_manual(values = branded_colors1)
 ggsave("BatchEffect_Normal Pancreas_Controle Score.png", path= "./output/")
 
 rm(raw_normal, conv_normal)
 
 
 # compare methylation
-
 betas_normal <- betas[, anno_normal$arrayId]
 
 betas_normal_avg <- tibble(
@@ -95,7 +94,7 @@ betas_normal_avg %>%
   geom_violin(alpha = 0.8) +
   theme_bw(base_size = 24) +
   labs(x = "Beta", y = "Density") +
-  scale_fill_manual(values = branded_colors) +
+  scale_fill_manual(values = branded_colors1) +
   theme(legend.position = "none")
 ggsave("BatchEffect_Normal Pancreas_Violin_Beta's avg.png", path= "./output/")
 
@@ -133,7 +132,7 @@ sum(ttest_perm$p.value < p_cutoff)/sum(ttest$p.value < p_cutoff)
 ttest %>%
   sample_n(size = 30000) %>% 
   ggplot(aes(dm, -log10(p.value))) +
-  geom_point(alpha = 0.4, col = branded_colors[6]) +
+  geom_point(alpha = 0.4, col = branded_colors1[6]) +
   theme_bw(base_size = 24) +
   labs(x = "Methylation difference (beta)", y = "-log10(p-value)")
 ggsave("BatchEffect_Normal Pancreas_Volcano_T-Testg.png", path= "./output/")
@@ -144,7 +143,7 @@ ttest %>%
   filter(p.value < 0.001) %>% 
   sample_n(size = 30000) %>% 
   ggplot(aes(j)) +
-  geom_density(alpha = 0.2, fill = branded_colors[3]) +
+  geom_density(alpha = 0.2, fill = branded_colors1[3]) +
   theme_bw(base_size = 24) +
   labs(x = "Avg. methylation (beta)", y = "-log10(p-value)")
 ggsave("BatchEffect_Normal Pancreas_DensityPlot_T-Test.png", path= "./output/")
@@ -172,16 +171,29 @@ heat <- cor(betas_normal) %>%
                      show_colnames = FALSE)
 save_pheatmap_pdf(heat, "./output/BatchEffect_Normal Pancreas_Heatmap cor.pdf")
 
+# run UMAP umap
+set.seed(45098)
+umap_settings <- umap.defaults
+umap_settings$n_neighbors = 15
+umap_settings$min_dist = 0.2
+
+#umap <- umap(d = sample_cor)
+umap <- umap(d = t(betas_normal), config = umap_settings, ret_model = TRUE)
+
+anno_normal <- anno_normal %>% 
+  mutate(umap_x = umap$layout[, 1], 
+         umap_y = umap$layout[, 2])
+
+anno_normal %>% 
+  ggplot(aes(umap_x, umap_y, col = source)) +
+  geom_point(size = 4)
 
 
-### Investigation 2: PanNets, DiDomenico vs. Jakel vs. Chan vs. Yachida --------------------
+### Investigation 2: PanNets, DiDomenico vs. Jakel vs. Chan vs. Yachida vs. UMCU --------------------
 
-# select (1) primary (2) PanNETs which are (3) not from UMCU
-anno_pnet1 <- anno %>% 
-  filter(tumorType == "PanNET" & location == "primary" & !source %in% c("UMCU", "yachida"))
-
-anno_pnet2 <- anno %>% 
-  filter(tumorType == "PanNET" & location == "primary" & source == "yachida")
+# select PanNETs 
+anno_pnet <- anno %>% 
+  filter(tumorType == "PanNET")
 
 
 # plot sample numbers per study
@@ -191,33 +203,38 @@ anno_pnet %>%
   ggplot(aes(source, n, fill = source)) +
   geom_col(width = 0.4) +
   labs(x = NULL, y = "Normal tissues (n)") +
-  scale_x_discrete(limits = c("Chan", "DiDomenico", "Jakel", "yachida"),
-                   breaks = c("Chan", "DiDomenico", "Jakel", "yachida"),
-                   labels = c("Chan", "DiDomenico", "Jakel", "Yachida")) +
+  #scale_x_discrete(limits = c("Chan", "DiDomenico", "Jakel", "UMCU", "yachida"),
+                   #breaks = c("Chan", "DiDomenico", "Jakel", "UMCU", "yachida"),
+                   #labels = c("Chan", "DiDomenico", "Jakel", "UMCU", "Yachida")) +
   theme_bw(base_size = 28) +
   theme(axis.title.y = element_text(face = "bold", hjust = 0.5, vjust=2, size = 16),
         axis.text = element_text(face = "bold", size = 10),
         axis.text.y = element_text(face = "bold", size = 8),
         legend.position = "none")+
-  scale_fill_manual(values = branded_colors)
+  scale_fill_manual(values = branded_colors1)
 ggsave("BatchEffect_PNET_No.png", path= "./output/")
  
 
 # list idats, read raw data
-idat_pnet1 <- list.files(path = "./input/ALL IDATS/", pattern = "_Grn.idat")
-file_pnet1 <- list.files(path = "./input/ALL IDATS/", pattern = "_Grn.idat", full.names = TRUE)
+idat <- list.files(path = "./data/ALL IDATS", pattern = "_Grn.idat")
+file <- list.files(path = "./data/ALL IDATS", pattern = "_Grn.idat", full.names = TRUE)
 
-file_pnet1 <- file_pnet1[match(paste0(anno_pnet1$arrayId, "_Grn.idat"), idat_pnet1)]
-raw_pnet1 <- read.metharray(basenames = file_pnet1)
+file <- file[match(paste0(anno_pnet$arrayId, "_Grn.idat"), idat)]
+
+file_size <- file.info(file)$size
+
+idats_epic <- file[file_size > 10000000]
+idats_450k <- file[file_size < 10000000]
+
+raw_epic <- read.metharray(basenames = idats_epic, force = TRUE)
+raw_450k <- read.metharray(basenames = idats_450k)
+
+raw_pnet <- read.metharray(basenames = file, force = TRUE)
+rm(idat, file)
 
 
-idat_pnet2 <- list.files(path = "./input/Yachida_EPIC_NETNEC/Idat Files/", pattern = "_Grn.idat")
-file_pnet2 <- list.files(path = "./input/Yachida_EPIC_NETNEC/Idat Files/", pattern = "_Grn.idat", full.names = TRUE)
 
-file_pnet2 <- file_pnet2[match(paste0(anno_pnet2$arrayId, "_Grn.idat"), idat_pnet2)]
-raw_pnet2 <- read.metharray(basenames = file_pnet2, force=TRUE)
-
-rm(idat_pnet, file_pnet, idat_pnet1, file_pnet1, idat_pnet2, file_pnet2)
+rm(idat_pnet, file_pnet)
 
 
 # investigate QC measures 1: bisulfite conversion efficiency 

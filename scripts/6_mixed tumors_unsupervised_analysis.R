@@ -28,7 +28,8 @@ betas <- readRDS(file = "./input/betas_pancreas_everything.rds")
 anno <- anno %>% 
   mutate(subtype = tumorType, 
          tumorType = str_replace(tumorType, "Mixed.*", "Mixed"), 
-         mixed = as.factor(ifelse(tumorType == "Mixed", 1, 0))) %>% 
+         mixed = as.factor(ifelse(tumorType == "Mixed", 1, 0)),
+         annotation = tumorType) %>% 
   filter(tumorType %in% c("PB", "ACC", "PanNEC", "PanNET", "NORM", "PDAC", "SPN", "Mixed")) %>% 
   filter(location %in% c("primary", "pancreas"))
 
@@ -82,8 +83,13 @@ pheatmap::pheatmap(sample_cor, show_colnames = FALSE)
 #dev.off()
 
 # run UMAP umap
-set.seed(12341234)
-umap <- umap(d = sample_cor)
+set.seed(45098)
+umap_settings <- umap.defaults
+umap_settings$n_neighbors = 15
+umap_settings$min_dist = 0.2
+
+#umap <- umap(d = sample_cor)
+umap <- umap(d = t(betas_model), config = umap_settings, ret_model = TRUE)
 
 
 
@@ -128,19 +134,95 @@ anno %>%
 
 browseVignettes("EpiSCORE")
 
-# UMAP
-set.seed(45098)
-umap_settings <- umap.defaults
-umap_settings$n_neighbors = 15
-umap_settings$min_dist = 0.2
-
-umap <- umap(d = t(betas), config = umap_settings, ret_model = TRUE)
+# plot UMAP
 anno <- anno %>% 
   mutate(umap_x = umap$layout[, 1], 
          umap_y = umap$layout[, 2])
 
-# plot UMAP
 anno %>% 
   ggplot(aes(umap_x, umap_y, col = tumorType)) +
   geom_point(size = 4)
+
+### add TCGA data ----------------------------------------------------------
+# processing was performed on server
+anno_tcga <- readRDS("./output/sample_anno_tcga.rds")
+betas_tcga <- readRDS(file = "./input/betas_tcga_modelprobes.rds")
+betas_tcga <- betas_tcga[, anno_tcga$basename]
+
+# rename TCGA columnns
+anno_tcga <- anno_tcga %>% 
+  select(basename, tissue) 
+
+colnames(anno_tcga) <- c("arrayId","tumorType")
+
+# rename TCGA ACC (adrenal carcinoma) to ADC (prevent clash with acinar carcinoma)
+anno_tcga$tumorType[anno_tcga$tumorType == "ACC"] <- "ADC"
+
+anno_tcga <- anno_tcga %>% 
+  mutate(mixed = as.factor(ifelse(tumorType == "Mixed", 1, 0)),
+         subtype = tumorType,
+         tumorType = "TCGA",
+         annotation = subtype)
+
+# RF predictions
+rf_scores_tcga <- predict(object = rf_model, t(betas_tcga), type = "prob")
+rf_scores_tcga <- rename_with(rf_scores_tcga, ~ paste0("scores_", .x))
+
+# winning score
+rf_scores_tcga_max <- apply(rf_scores_tcga, 1, max)
+
+# class
+rf_class_tcga <- predict(object = rf_model, t(betas_tcga), type = "raw")
+
+# rf score entropy
+rf_entropy_tcga <- apply(rf_scores_tcga, 1, entropy)
+beta_var_tcga <- apply(betas_tcga, 2, var)
+beta_entropy_tcga <- apply(betas_tcga, 2, entropy)
+
+# combine data
+rf_data <- bind_rows(as_tibble(rf_pred_scores), 
+                     as_tibble(rf_scores_tcga))
+
+# add annotaion
+rf_data <- rf_data %>% 
+  mutate(winning_class = c(rf_pred_class, rf_class_tcga), 
+         winning_score = c(rf_pred_scores_max, rf_scores_tcga_max),
+         rf_entropy = c(rf_entropy, rf_entropy_tcga),
+         beta_entropy = c(beta_entropy, beta_entropy_tcga), 
+         beta_var = c(beta_var, beta_var_tcga),
+         class_int = c(rep(1, length(rf_pred_class)), rep(0, length(rf_class_tcga))),
+         class_char = ifelse(class_int == 0, "outlier", "pancreas"))
+
+# combine data
+anno_all <- bind_rows(as_tibble(anno), 
+                      as_tibble(anno_tcga))
+
+anno_all <- bind_cols(anno_all, rf_data)
+
+
+# RF score entropy
+anno_all %>% 
+  ggplot(aes(tumorType, rf_entropy, fill = tumorType)) +
+  geom_boxplot() +
+  theme_classic(base_size = 18) +
+  labs(x = NULL, y = "RF score entropy")
+
+
+
+
+# combine betas
+betas_all <- bind_cols(betas_model, betas_tcga)
+
+# plot UMAP
+umap_all <- umap(d = t(betas_all), config = umap_settings, ret_model = TRUE)
+
+
+anno_all <- anno_all %>% 
+  mutate(umap_x = umap_all$layout[, 1], 
+         umap_y = umap_all$layout[, 2])
+
+anno_all %>% 
+  ggplot(aes(umap_x, umap_y, col = tumorType)) +
+  geom_point(size = 4)
+
 
