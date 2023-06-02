@@ -44,9 +44,9 @@ betas_tcga <- betas_tcga[, anno_tcga$basename]
 
 # rename TCGA columnns
 anno_tcga <- anno_tcga %>% 
-  select(basename, tissue) %>% 
-  rename("arrayId" = basename, 
-         "tumorType" = tissue)
+  select(basename, tissue) 
+
+colnames(anno_tcga) <- c("arrayId","tumorType")
 
 # rename TCGA ACC (adrenal carcinoma) to ADC (prevent clash with acinar carcinoma)
 anno_tcga$tumorType[anno_tcga$tumorType == "ACC"] <- "ADC"

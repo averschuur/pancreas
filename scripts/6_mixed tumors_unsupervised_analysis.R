@@ -128,3 +128,19 @@ anno %>%
 
 browseVignettes("EpiSCORE")
 
+# UMAP
+set.seed(45098)
+umap_settings <- umap.defaults
+umap_settings$n_neighbors = 15
+umap_settings$min_dist = 0.2
+
+umap <- umap(d = t(betas), config = umap_settings, ret_model = TRUE)
+anno <- anno %>% 
+  mutate(umap_x = umap$layout[, 1], 
+         umap_y = umap$layout[, 2])
+
+# plot UMAP
+anno %>% 
+  ggplot(aes(umap_x, umap_y, col = tumorType)) +
+  geom_point(size = 4)
+
