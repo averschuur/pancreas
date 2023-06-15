@@ -292,7 +292,7 @@ perf_acc  %>%
   theme(legend.position = "none") +
   labs(x = NULL, y = "Accuracy (test cohort)") +
   ylim(0, 1)
-ggsave("model_comparison_accuracy_testset.png", path= "./plots/")
+
 
 
 # plot accuracy across different classes RF
@@ -307,7 +307,6 @@ perf_per_class %>%
   scale_fill_manual(values = branded_colors1) +
   theme_bw(base_size = 30) +
   theme(legend.position = "none")
-ggsave("model_comparison_accuracies_randforest.png", path= "./plots/")
 
 
 

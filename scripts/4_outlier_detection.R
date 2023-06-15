@@ -43,8 +43,7 @@ betas_tcga <- readRDS(file = "./input/betas_tcga_modelprobes.rds")
 betas_tcga <- betas_tcga[, anno_tcga$basename]
 
 # rename TCGA columnns
-anno_tcga <- anno_tcga %>% 
-  select(basename, tissue) 
+anno_tcga <- anno_tcga[,c(1,4)]
 
 colnames(anno_tcga) <- c("arrayId","tumorType")
 

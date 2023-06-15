@@ -186,7 +186,8 @@ rf_data %>%
     legend.text = element_text(size = 14),
     legend.key.size = unit(0.4, 'cm'),
     panel.grid = element_blank())
-ggsave("Figure 3_score distribution.pdf", path= "./plots/", dpi=500)
+ggsave("Figure 3_score distribution logistic regresiion.pdf", path= "./plots/", dpi=500)
+
 
 ### Plot dropout and pass
 cutoff_data %>% 
@@ -204,7 +205,7 @@ cutoff_data %>%
     axis.ticks = element_blank(),
     legend.position = "none",
     panel.grid = element_blank())
-ggsave("Figure 4_dropout and pass.pdf", path= "./plots/", dpi=500)
+ggsave("Figure 4_dropout and pass_lr.pdf", path= "./plots/", dpi=500)
 
 
 # plot ROC curve
