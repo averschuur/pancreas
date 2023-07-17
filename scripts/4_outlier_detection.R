@@ -57,58 +57,10 @@ anno_tcga %>%
 
 
 
-# load models ------------------------------------------------------------------
+# load model ------------------------------------------------------------------
 
-nn_model <- load_model_hdf5(filepath = "./output/nn_model.hdf5")
 rf_model <- readRDS(file = "./output/rf_model_default.rds")
 
-
-
-# run data through neural network ----------------------------------------------
-
-# determine NN scores
-nn_scores_tcga <- predict(object = nn_model, t(betas_tcga))
-nn_scores_pancreas <- predict(object = nn_model, t(betas))
-
-# add labels to score matrixs
-nn_labels <- c("ACC", "NORM", "PanNEC", "PanNET", "PB", "PDAC", "SPN")
-colnames(nn_scores_tcga) <- nn_labels
-colnames(nn_scores_pancreas) <- nn_labels
-
-# calculate max score and label for TCGA cases
-nn_scores_tcga_max <- apply(nn_scores_tcga, 1, max)
-nn_classes_tcga <- apply(nn_scores_tcga, 1, which.max)
-nn_classes_tcga <- nn_labels[nn_classes_tcga]
-
-# calculate scores for Pancreas Samples
-nn_scores_pancreas_max <- apply(nn_scores_pancreas, 1, max)
-nn_classes_pancreas <- apply(nn_scores_pancreas, 1, which.max)
-nn_classes_pancreas <- nn_labels[nn_classes_pancreas]
-
-# collect data
-nn_scores_all <- tibble(class_int = c(rep(0, nrow(nn_scores_tcga)), 
-                                      rep(1, nrow(nn_scores_pancreas))), 
-                        score = c(nn_scores_tcga_max, nn_scores_pancreas_max))
-
-nn_scores_max <- nn_scores_all %>% 
-  mutate(class_char = ifelse(class_int == 0, "tcga", "pancreas"),
-         pred_class = c(as.character(nn_classes_tcga), as.character(nn_classes_pancreas))) %>% 
-  select(class_char, class_int, score, pred_class)
-
-
-# plot score distribution 
-nn_scores_max %>% 
-  ggplot(aes(class_char, score, fill = class_char)) +
-  geom_boxplot(alpha = 0.5) +
-  theme_bw(base_size = 20) +
-  scale_fill_manual(values = branded_colors2) +
-  theme(legend.position = "bottom", legend.title = element_blank()) +
-  labs(x = NULL, y = "Neural Network Score")
-
-# plot ROC curve
-nn_scores_roc <- pROC::roc(nn_scores_max$class_int, nn_scores_max$score)
-plot.roc(nn_scores_roc, grid = TRUE, )
-nn_scores_roc
 
 
 
@@ -170,9 +122,9 @@ rf_data %>%
   labs(x = NULL, y = "Random Forest Score")
 
 # calculate AUC, plot ROC
-rf_data_roc <- with(rf_data, roc(class_int, winning_score))
+rf_data_roc <- with(rf_data, pROC::roc(class_int, winning_score))
 rf_data_roc
-plot.roc(rf_data_roc)
+pROC::plot.roc(rf_data_roc)
 
 
 
@@ -208,7 +160,7 @@ rf_data %>%
 # plot ROC curve
 od_prob_roc <- rf_data %>%
   pROC::roc(class_int, od_prob)
-plot.roc(od_prob_roc)
+pROC::plot.roc(od_prob_roc)
 od_prob_roc
 
 rf_data %>% 
@@ -264,5 +216,5 @@ cutoff_data %>%
 
 
 ### save results to disk ------------------------
-saveRDS(object = od_model, file = "./output/outlier_det_model.rds")
-saveRDS(object = rf_data, file = "./output/outlier_det_results.rds")
+#saveRDS(object = od_model, file = "./output/outlier_det_model.rds")
+#saveRDS(object = rf_data, file = "./output/outlier_det_results.rds")
