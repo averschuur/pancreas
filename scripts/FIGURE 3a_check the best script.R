@@ -130,7 +130,7 @@ performance_cutoff %>%
         legend.position = "top") +
   facet_grid(cols = vars(method)) +
   labs(x = "Cutoff", y = "Accuracy/Predictable (%)")
-ggsave("Figure 3DEF_cutoff_vs_predictable_accuracy.pdf", path= "./plots/")
+ggsave("Figure 3DEF_cutoff_vs_predictable_accuracy.pdf", path= "./plots/", dpi=500)
 
 
 
@@ -164,7 +164,7 @@ ggplot(plt, aes(prediction,actual, fill= Freq)) +
         legend.text = element_text(size = 8),
         panel.border = element_blank(),
         panel.grid = element_blank())
-ggsave("Figure3G_ConfusionMatrix_nn.pdf", path= "./plots/")
+ggsave("Figure3G_ConfusionMatrix_nn.pdf", path= "./plots/", dpi=500)
 
 ## rf
 rf_cm <- table(prediction = rf_pred_class, actual = anno$tumorType) %>% 
@@ -192,7 +192,7 @@ ggplot(plt, aes(prediction,actual, fill= Freq)) +
         legend.text = element_text(size = 8),
         panel.border = element_blank(),
         panel.grid = element_blank())
-ggsave("Figure3H_ConfusionMatrix_rf.pdf", path= "./plots/")
+ggsave("Figure3H_ConfusionMatrix_rf.pdf", path= "./plots/", dpi=500)
 
 ## xgb
 xgb_nn<-table(prediction = xgb_pred_class, actual = anno$tumorType) %>% 
@@ -220,7 +220,7 @@ ggplot(plt, aes(prediction,actual, fill= Freq)) +
         legend.text = element_text(size = 8),
         panel.border = element_blank(),
         panel.grid = element_blank())
-ggsave("Figure3I_ConfusionMatrix_xgb.pdf", path= "./plots/")
+ggsave("Figure3I_ConfusionMatrix_xgb.pdf", path= "./plots/", dpi=500)
 
 
 
@@ -255,9 +255,9 @@ ggsave("Figure3J_correct classification TEST COHORT.pdf", path= "./plots/", dpi 
 
 
 
-##### EXTRA ######
+##### EXTRA FIGURES ######
 
-### Figure G: UMAP entire cohort ------------------------------------------------------------------------------------------
+### UMAP entire cohort ------------------------------------------------------------------------------------------
 anno %>% 
   ggplot(aes(umap_x, umap_y, col = tumorType)) + 
   geom_point(shape=19, size = 3) +
