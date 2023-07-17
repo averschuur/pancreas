@@ -43,17 +43,17 @@ test_set$y <- as.factor(anno$tumorType[anno$cohort == "test"])
 
 # upsample the training cohort
 set.seed(234234)
-train_set_upsampled <- upSample(x = train_set$x, y = train_set$y, list = TRUE)
+train_set_upsampled <- upSample(train_set$x, train_set$y, list = TRUE)
 
 # add one-hot converted y for neural networks
 train_set_upsampled$onehot <- to_one_hot(train_set_upsampled$y)
 test_set$onehot <- to_one_hot(test_set$y)
 
-saveRDS(object = train_set_upsampled, file = "./output/train_set_upsampled.rds")
-saveRDS(object = test_set, file = "./output/test_set.rds")
+#saveRDS(object = train_set_upsampled, file = "./output/train_set_upsampled.rds")
+#saveRDS(object = test_set, file = "./output/test_set.rds")
 
-test_up <- readRDS("./output/train_set_upsampled.rds")
-test <- readRDS("./output/test_set.rds")
+#train_set_upsampled <- readRDS("./output/train_set_upsampled.rds")
+#test_set <- readRDS("./output/test_set.rds")
 
 
 
@@ -85,8 +85,8 @@ rf_pred <- predict(rf_model, newdata = test_set$x)
 rf_cfmatrix <- confusionMatrix(rf_pred, test_set$y)
 rf_cfmatrix
 
-saveRDS(object = rf_model, file = "./output/rf_model_default.rds")
-saveRDS(object = rf_cfmatrix, file = "./output/rf_confusion_matrix.rds")
+#saveRDS(object = rf_model, file = "./output/rf_model_default.rds")
+#saveRDS(object = rf_cfmatrix, file = "./output/rf_confusion_matrix.rds")
 
 
 
@@ -111,8 +111,8 @@ xgb_pred <- predict(xgb_model, newdata = test_set$x)
 xgb_cfmatrix <- confusionMatrix(xgb_pred, test_set$y)
 xgb_cfmatrix
 
-saveRDS(object = xgb_model, file = "./output/xgb_model_default.rds")
-saveRDS(object = xgb_cfmatrix, file = "./output/xgb_confusion_matrix.rds")
+#saveRDS(object = xgb_model, file = "./output/xgb_model_default.rds")
+#saveRDS(object = xgb_cfmatrix, file = "./output/xgb_confusion_matrix.rds")
 
 
 
@@ -228,8 +228,8 @@ nn_model %>% fit(
 nn_model %>% evaluate(as.matrix(test_set$x), test_set$onehot)
 
 # save model and performance history
-save_model_hdf5(object = nn_model, filepath = "./output/nn_model.hdf5")
-saveRDS(object = perf_hist, file = "./output/nn_model_performance_history.rds")
+#save_model_hdf5(object = nn_model, filepath = "./output/nn_model.hdf5")
+#saveRDS(object = perf_hist, file = "./output/nn_model_performance_history.rds")
 
 
 
@@ -266,8 +266,8 @@ anno <- anno %>%
          pred_scores_rf = apply(rf_pred_scores, 1, max), 
          pred_scores_xgb = apply(xgb_pred_scores, 1, max))
 
-saveRDS(object = anno, file = "./output/sample_annotation_classifier_performance.rds")
-anno <- readRDS("./output/sample_annotation_classifier_performance.rds")
+#saveRDS(object = anno, file = "./output/sample_annotation_classifier_performance.rds")
+#anno <- readRDS("./output/sample_annotation_classifier_performance.rds")
 
 
 # confusion matrices
@@ -275,8 +275,8 @@ test_indices <- which(anno$cohort == "test", arr.ind = TRUE)
 conf_mat <- list(rf_pred_class, xgb_pred_class, nn_pred_class)
 conf_mat <- lapply(conf_mat, function(x) x[test_indices])
 conf_mat <- lapply(conf_mat, function(x) confusionMatrix(x, test_set$y))
-saveRDS(object = conf_mat, file = "./output/confusion_matrices.rds")
-conf_mat <- readRDS("./output/confusion_matrices.rds")
+#saveRDS(object = conf_mat, file = "./output/confusion_matrices.rds")
+#conf_mat <- readRDS("./output/confusion_matrices.rds")
 
 # plot accuracy per algorithm
 perf_acc <- sapply(conf_mat, function(x) x[["overall"]][c(1, 3, 4)])
@@ -315,7 +315,6 @@ perf_per_class %>%
 anno %>% 
   select(tumorType, absolute, estimate, avg_beta_unfiltered, avg_beta_filtered, conversion, 18:20) %>% 
   GGally::ggpairs()
-ggsave("pairwise_correlations_annotation.png", path= "./plots/")
 
 anno %>% 
   mutate(correct = ifelse(tumorType == pred_rf, "correct", "incorrect")) %>% 
@@ -352,7 +351,7 @@ incorrect_xgb <- anno %>%
 # look at accuracies at different cutoffs for scores ---------------------------
 
 # determine cutoffs for scores
-cutoffs <- seq(from = 0.3, to = 0.95, length.out = 14)
+cutoffs <- seq(from = 0.1, to = 0.95, length.out = 14)
 real_class <- anno$tumorType[test_indices]
 
 cutoff_nn <- slide_along_cutoff(label_real = real_class, 
@@ -381,6 +380,8 @@ cutoff_xgb <- cutoff_xgb %>%
   add_column(method = "XGB", .before = TRUE)
 
 performance_cutoff <- rbind(cutoff_nn, cutoff_rf, cutoff_xgb)
+#saveRDS(object = performance_cutoff, file = "./output/performance_cutoff.rds")
+#performance_cutoff <- readRDS("./output/performance_cutoff.rds")
 rm(cutoff_nn, cutoff_rf, cutoff_xgb)
 
 # plot cutoff vs. predictable / accuracy
@@ -399,4 +400,3 @@ performance_cutoff %>%
         legend.position = "top") +
   facet_grid(cols = vars(method)) +
   labs(x = "Cutoff", y = "Accuracy/Predictable (%)")
-ggsave("cutoff_vs_predictable_accuracy.pdf", path= "./plots/")

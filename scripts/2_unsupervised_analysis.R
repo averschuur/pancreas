@@ -66,7 +66,6 @@ conv_scores <- readRDS(file = "./annotation/sample_annotation_conversion_scores.
 anno <- left_join(anno, conv_scores)
 
 
-
 # plot basic statistics for the data set ---------------------------------------
 
 # overview of all variables
@@ -93,7 +92,6 @@ anno %>%
   labs(title="Tumor Type By Source",x = "", y = "No. of cases") +
   scale_fill_manual(values = branded_colors1) +
   theme_bw(base_size = 18)
-ggsave("Figure 1A_count tumorType per source.png", path= "./output/")
 
 # tumor purity
 anno %>% 
@@ -111,7 +109,6 @@ anno %>%
   scale_shape_manual(values = c(21, 25, 22, 23, 24, 8, 10)) +
   scale_colour_manual(values = branded_colors1) +
   theme_classic(base_size = 18)
-ggsave("Figure 1D_tumor purity per tumorType_estimate.png", path= "./output/")
 
 anno %>% 
   ggplot(aes(tumorType, absolute, col = tumorType)) +
@@ -121,7 +118,6 @@ anno %>%
   scale_shape_manual(values = c(21, 25, 22, 23, 24, 8, 1)) +
   scale_colour_manual(values = branded_colors1) +
   theme_classic(base_size = 18)
-ggsave("Figure 1D_tumor purity per tumorType_absolute.png", path= "./output/")
 
 # average methylation
 anno %>% 
@@ -132,7 +128,6 @@ anno %>%
   scale_colour_manual(values = branded_colors1) +
   theme_bw(base_size = 18) +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
-ggsave("Figure 1C_average methylation.png", path= "./output/")
 
 # clean up
 rm(absolute, estimate, betas)
