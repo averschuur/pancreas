@@ -367,7 +367,7 @@ incorrect_xgb <- anno %>%
 # look at accuracies at different cutoffs for scores ---------------------------
 
 # determine cutoffs for scores
-cutoffs <- seq(from = 0.1, to = 0.95, length.out = 14)
+cutoffs <- seq(from = 0.1, to = 0.95, length.out = 18)
 real_class <- anno$tumorType[test_indices]
 
 cutoff_nn <- slide_along_cutoff(label_real = real_class, 
