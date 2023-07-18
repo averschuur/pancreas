@@ -293,6 +293,22 @@ perf_acc  %>%
   labs(x = NULL, y = "Accuracy (test cohort)") +
   ylim(0, 1)
 
+# statistics
+ANOVA1 <- perf_acc[,c(1:2)]
+ANOVA2 <- perf_acc[,c(1,3)]
+colnames(ANOVA2) <- c("method", "Accuracy")
+ANOVA3 <- perf_acc[,c(1,4)]
+colnames(ANOVA3) <- c("method", "Accuracy")
+ANOVA <- rbind(ANOVA1, ANOVA2)
+ANOVA <- rbind(ANOVA, ANOVA3)
+
+attach(ANOVA)
+boxplot(Accuracy~method)
+
+
+mfit <- lm(Accuracy~factor(method))
+anova(mfit)
+
 
 
 # plot accuracy across different classes RF
