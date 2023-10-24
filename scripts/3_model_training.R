@@ -4,7 +4,6 @@
 
 
 # load libraries
-
 library(tidyverse)
 library(ggplot2)
 
@@ -21,11 +20,11 @@ source(file = "./scripts/0_helpers.R")
 
 # import annotation and data ---------------------------------------------------
 
-anno <- readRDS("./output/sample_annotation_umap_purity.rds")
+anno <- readRDS("./output/sample_annotation_umap_purity_24102023.rds")
 betas <- readRDS(file = "./input/betas_pancreas_everything.rds")
 
 # pick 5,000 most variable probes
-top_var_probes <- readRDS(file = "./output/pancreas_top_variable_probes_training_set.rds")
+top_var_probes <- readRDS(file = "./output/pancreas_top_variable_probes_training_set_24102023.rds")
 top_var_probes <- top_var_probes[1:5000]
 
 # filter
@@ -85,8 +84,8 @@ rf_pred <- predict(rf_model, newdata = test_set$x)
 rf_cfmatrix <- confusionMatrix(rf_pred, test_set$y)
 rf_cfmatrix
 
-#saveRDS(object = rf_model, file = "./output/rf_model_default.rds")
-#saveRDS(object = rf_cfmatrix, file = "./output/rf_confusion_matrix.rds")
+#saveRDS(object = rf_model, file = "./output/rf_model_default_24102023.rds")
+#saveRDS(object = rf_cfmatrix, file = "./output/rf_confusion_matrix_24102023.rds")
 
 
 
@@ -111,8 +110,8 @@ xgb_pred <- predict(xgb_model, newdata = test_set$x)
 xgb_cfmatrix <- confusionMatrix(xgb_pred, test_set$y)
 xgb_cfmatrix
 
-#saveRDS(object = xgb_model, file = "./output/xgb_model_default.rds")
-#saveRDS(object = xgb_cfmatrix, file = "./output/xgb_confusion_matrix.rds")
+#saveRDS(object = xgb_model, file = "./output/xgb_model_default_24102023.rds")
+#saveRDS(object = xgb_cfmatrix, file = "./output/xgb_confusion_matrix_24102023.rds")
 
 
 
