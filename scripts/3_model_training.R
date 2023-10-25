@@ -227,16 +227,16 @@ nn_model %>% fit(
 nn_model %>% evaluate(as.matrix(test_set$x), test_set$onehot)
 
 # save model and performance history
-#save_model_hdf5(object = nn_model, filepath = "./output/nn_model.hdf5")
-#saveRDS(object = perf_hist, file = "./output/nn_model_performance_history.rds")
+save_model_hdf5(object = nn_model, filepath = "./output/nn_model_24102023.hdf5")
+saveRDS(object = perf_hist, file = "./output/nn_model_performance_history_24102023.rds")
 
 
 
 # compare model performance ------------------------------------------
 
-rf_model <- readRDS(file = "./output/rf_model_default.rds")
-xgb_model <- readRDS(file = "./output/xgb_model_default.rds")
-nn_model <- load_model_hdf5(file = "./output/nn_model.hdf5")
+rf_model <- readRDS(file = "./output/rf_model_default_24102023.rds")
+xgb_model <- readRDS(file = "./output/xgb_model_default_24102023.rds")
+nn_model <- load_model_hdf5(file = "./output/nn_model_24102023.hdf5")
 
 # rf predictions
 rf_pred_class <- predict(rf_model, newdata = t(betas))
