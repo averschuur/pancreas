@@ -51,8 +51,8 @@ test_set$onehot <- to_one_hot(test_set$y)
 #saveRDS(object = train_set_upsampled, file = "./output/train_set_upsampled.rds")
 #saveRDS(object = test_set, file = "./output/test_set.rds")
 
-#train_set_upsampled <- readRDS("./output/train_set_upsampled.rds")
-#test_set <- readRDS("./output/test_set.rds")
+#train_set_upsampled <- readRDS("./output/train_set_upsampled_24102023.rds")
+#test_set <- readRDS("./output/test_set_24102023.rds")
 
 
 
