@@ -12,8 +12,8 @@ test/*
 input/*
 plots/*
 backup AV/*
-backup/*
-back up/*
+scripts/backup/*
+scripts/back up/*
 .DS_Store
 *.Rdata
 .Ruserdata
