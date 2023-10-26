@@ -7,6 +7,7 @@
 library(tidyverse)
 library(ggplot2)
 
+reticulate::use_condaenv("r-tensorflow")
 library(keras)
 library(randomForest)
 library(xgboost)
@@ -53,19 +54,6 @@ test_set$onehot <- to_one_hot(test_set$y)
 
 #train_set_upsampled <- readRDS("./output/train_set_upsampled_24102023.rds")
 #test_set <- readRDS("./output/test_set_24102023.rds")
-
-
-
-# set up training parameters ---------------------------------------------------
-
-# 10-fold cross validation, repeated three times
-control <- trainControl(method = "repeatedcv", 
-                        number = 10,
-                        repeats = 3)
-
-# parallel processing
-registerDoParallel(cores = 6)
-getDoParWorkers()
 
 
 
