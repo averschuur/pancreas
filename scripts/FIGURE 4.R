@@ -2,34 +2,8 @@
 ### FIGURE 4: Outlier detection ###
 ###################################
 
-# number of samples per dataset
-anno_tcga <- anno_tcga %>%
-  add_column(add_column = "TCGA")
-anno_pancreas <- anno[,c(1,5)]
-anno_pancreas <- anno_pancreas %>%
-  add_column(add_column = "pancreas")
 
-anno_total <- full_join(anno_tcga, anno_pancreas)
-
-anno_total %>% 
-  ggplot(aes(add_column)) +
-  geom_bar(aes(fill = add_column)) +
-  labs(#title="Tumor Type By Source",
-    x = "", y = "No. of cases", fill = "Location") +
-  paletteer::scale_fill_paletteer_d("rcartocolor::Safe") +
-  theme_bw(base_size = 18) +
-  theme(#plot.title = element_text(face = "bold", hjust = 0, size = 14),
-    axis.title.y = element_text(face = "bold", hjust = 0.5, vjust=2, size = 12),
-    axis.text.x = element_text(face = "bold", size = 11, vjust=0, hjust=0.5),
-    axis.ticks = element_blank(),
-    legend.position = "top",
-    legend.title = element_text(face = "bold", size = 14),
-    legend.text = element_text(size = 14),
-    legend.key.size = unit(0.4, 'cm'),
-    panel.grid = element_blank())
-ggsave("Figure 3_count Dataset.pdf", path= "./plots/", dpi=500)
-
-## Tumors in TCGA dataset
+# Figure 4A: Tumors in TCGA dataset --------------------------------------------
 colors <- c("#24693DFF", "#2E7542FF", "#368046FF", "#3E8A4AFF", "#46944EFF", 
             "#529E54FF", "#5EA85BFF", "#69B262FF", "#75BC69FF", "#8BC482FF",
             "#A0CB9CFF", "#B3D2B5FF", "#C7D9CFFF", "#B9CFD2FF", "#A6C3D1FF", 
@@ -49,9 +23,10 @@ anno_tcga %>%
     axis.ticks = element_blank(),
     legend.position = "none",
     panel.grid = element_blank())
-ggsave("Figure 3_count TCGA Dataset.pdf", path= "./plots/", dpi=500)
+ggsave("Figure 4A_count TCGA Dataset.pdf", path= "./plots/", dpi=500)
 
-### plot confusion matrix
+
+### Figure 4B: plot confusion matrix ------------------------------------------
 rf_scores_tcga <- rf_scores_tcga %>%
   mutate(winning_class = rf_class_tcga, 
          winning_score = rf_scores_tcga_max, 
@@ -80,9 +55,10 @@ rf_tcga_plot %>%
     legend.key.size = unit(0.4, 'cm'),
     panel.grid = element_blank()) +
   labs(x = NULL)
-ggsave("Figure3_tcga prediction by rf.pdf", path= "./plots/", dpi=500)
+ggsave("Figure 4B_tcga prediction by rf.pdf", path= "./plots/", dpi=500)
 
-### RF score distributions for the three classes from B for outliers vs. pancreatic cancers
+
+### Figure 4C-E: RF score distributions for the three classes from B for outliers vs. pancreatic cancers-------------------------
 rf_data %>% 
   filter(winning_class %in% c("ACC", "PanNET", "PDAC")) %>% 
   ggplot(aes(class_char, winning_score, fill = winning_class)) +
@@ -97,7 +73,7 @@ rf_data %>%
     axis.ticks = element_blank(),
     legend.position = "none",
     panel.grid = element_blank())
-ggsave("Figure 4_RF score distributions for the three classes.pdf", width = 8, height = 3, units = "in", path= "./plots/", dpi=500)
+ggsave("Figure 4CDE_RF score distributions for the three classes.pdf", width = 8, height = 3, units = "in", path= "./plots/", dpi=500)
 
 ### stats ACC
 rf_data_ACC <- rf_data %>%
@@ -165,7 +141,7 @@ t.test(rf_data_PDAC$winning_score ~ rf_data_PDAC$class_char,  paired = F, var.eq
 #  mean in group outlier mean in group pancreas 
 #0.4131111              0.8737302 
 
-### Outlier probability
+# Figure 4F: Outlier probability --------------------------------------------------
 rf_data %>% 
   ggplot(aes(class_char, od_prob, fill = class_char)) +
   geom_boxplot(alpha = 0.5) +
@@ -186,10 +162,10 @@ rf_data %>%
     legend.text = element_text(size = 14),
     legend.key.size = unit(0.4, 'cm'),
     panel.grid = element_blank())
-ggsave("Figure 3_score distribution logistic regresiion.pdf", path= "./plots/", dpi=500)
+ggsave("Figure 4F_score distribution logistic regresiion.pdf", path= "./plots/", dpi=500)
 
 
-### Plot dropout and pass
+# Figure 4GH: Plot dropout and pass------------------------------------------------
 cutoff_data %>% 
   pivot_longer(cols = -cutoff) %>% 
   filter(cutoff > 0) %>% 
@@ -205,13 +181,15 @@ cutoff_data %>%
     axis.ticks = element_blank(),
     legend.position = "none",
     panel.grid = element_blank())
-ggsave("Figure 4_dropout and pass_lr.pdf", path= "./plots/", dpi=500)
+ggsave("Figure 4GH_dropout and pass_lr.pdf", path= "./plots/", dpi=500)
 
+
+######### EXTRA FIGURES #########
 
 # plot ROC curve
 od_prob_roc <- rf_data %>%
   pROC::roc(class_int, od_prob)
-plot.roc(od_prob_roc)
+pROC::plot.roc(od_prob_roc)
 od_prob_roc
 
 ggroc(od_prob_roc, color = 'steelblue', size =1) +
@@ -225,35 +203,6 @@ ggroc(od_prob_roc, color = 'steelblue', size =1) +
     legend.text = element_text(size = 14),
     legend.key.size = unit(0.4, 'cm'),
     panel.grid = element_blank())
-ggsave("Figure 3_ROC.pdf", path= "./plots/", dpi=500)
+ggsave("Figure 4_ROC.pdf", path= "./plots/", dpi=500)
 
-
-
-anno %>%
-  mutate(online = case_when(source == "Benhamida" ~ "online",
-                            source == "Chan" ~ "online",
-                            source == "DiDomenico" ~ "online",
-                            source == "Endo" ~ "online",
-                            source == "Jakel" ~ "online",
-                            source == "Selenica" ~ "online",
-                            source == "yachida" ~ "online",
-                            source == "UMCU" ~ "local")) %>%
-  ggplot(aes(online)) +
-  geom_bar(aes(fill = online)) +
-  labs(#title="Tumor Type By Source",
-    x = "", y = "No. of cases", fill = "Location") +
-  paletteer::scale_fill_paletteer_d("rcartocolor::Safe") +
-  theme_bw(base_size = 18) +
-  theme(#plot.title = element_text(face = "bold", hjust = 0, size = 14),
-    axis.title.y = element_text(face = "bold", hjust = 0.5, vjust=2, size = 12),
-    axis.text.x = element_text(face = "bold", size = 11, vjust=0, hjust=0.5),
-    axis.ticks = element_blank(),
-    legend.position = "top",
-    legend.title = element_text(face = "bold", size = 14),
-    legend.text = element_text(size = 14),
-    legend.key.size = unit(0.4, 'cm'),
-    panel.grid = element_blank())
-ggsave("Figure 2_count online Dataset.pdf", path= "./plots/", dpi=500)
-
-correct = ifelse(tumorType == pred_rf, "correct", "incorrect"
                  

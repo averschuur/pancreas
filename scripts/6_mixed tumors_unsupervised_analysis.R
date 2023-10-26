@@ -65,13 +65,13 @@ anno <- anno %>%
 
 anno <- bind_cols(anno, rf_pred_scores)
 
+
 # check correlations between variables
 anno %>% 
   select(tumorType, mixed, absolute, estimate, 
          starts_with("rf"), starts_with("beta")) %>% 
   GGally::ggpairs()
 
-ggsave(filename = "./plots/mixed_tumors_pairwise_plots.pdf")
 
 # heatmap of sample-wise correlations
 sample_cor <- cor(betas_model)
@@ -143,6 +143,26 @@ anno %>%
   ggplot(aes(umap_x, umap_y, col = tumorType)) +
   geom_point(size = 4)
 
+
+# outlier detection
+
+anno_Mixed <- anno %>% 
+  mutate(winning_class = c(rf_class), 
+         winning_score = c(rf_winning_score), 
+         tumorType = anno$tumorType,
+         class_int = rep(1, length(rf_class)),
+         class_char = ifelse(class_int == 0, "outlier", "pancreas"))
+
+od_pred1 <- anno_Mixed %>%
+  predict(object = od_model, newdata = ., type = "response")
+
+anno_Mixed <- anno_Mixed %>% 
+  mutate(od_prob1 = od_pred1, 
+         od_class = ifelse(od_prob1 > 0.5, "pancreas", "outlier"))
+
+#saveRDS(object = anno_Mixed, file = "./output/anno_incl_mixed tumors.rds")
+
+
 ### add TCGA data ----------------------------------------------------------
 # processing was performed on server
 anno_tcga <- readRDS("./output/sample_anno_tcga.rds")
@@ -206,7 +226,6 @@ anno_all %>%
   geom_boxplot() +
   theme_classic(base_size = 18) +
   labs(x = NULL, y = "RF score entropy")
-
 
 
 

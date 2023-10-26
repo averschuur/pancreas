@@ -24,11 +24,13 @@ source("./scripts/0_helpers.R")
 
 anno <- readRDS("./input/sample_annotation.rds")
 
-# keep primaries (PanNET, PanNEC, ACC, SPN, PB and PDAC) and normal pancreas (NORM)
+# keep primaries (PNET, PNEC, ACC, SPN, PB and PDAC) and normal pancreas (NORM)
 anno <- anno %>% 
   filter(tumorType %in% c("PanNET", "ACC", "SPN", "PDAC", "NORM", "PanNEC", "PB")) %>% 
   filter(location %in% c("primary", "pancreas"))
 
+# exclude MiNEN and biopsy samples
+anno <- anno[c(1:268,271, 273, 275, 277:326),]
 
 
 # split into training and testing cohort ---------------------------------------
@@ -66,7 +68,6 @@ conv_scores <- readRDS(file = "./annotation/sample_annotation_conversion_scores.
 anno <- left_join(anno, conv_scores)
 
 
-
 # plot basic statistics for the data set ---------------------------------------
 
 # overview of all variables
@@ -83,7 +84,6 @@ anno %>%
   geom_col() +
   theme_classic(base_size = 20) +
   theme(legend.position = "none") +
-  scale_fill_manual(values = branded_colors1) +
   labs(x = NULL, y = "Number of Cases")
 
 # number of cases by source
@@ -91,9 +91,7 @@ anno %>%
   ggplot(aes(tumorType)) +
   geom_bar(aes(fill = source)) +
   labs(title="Tumor Type By Source",x = "", y = "No. of cases") +
-  scale_fill_manual(values = branded_colors1) +
   theme_bw(base_size = 18)
-ggsave("Figure 1A_count tumorType per source.png", path= "./output/")
 
 # tumor purity
 anno %>% 
@@ -109,9 +107,7 @@ anno %>%
   geom_point(position = position_jitterdodge(0.5), alpha=0.7) +
   #geom_jitter(aes(fill=tumorType, shape=tumorType)) +
   scale_shape_manual(values = c(21, 25, 22, 23, 24, 8, 10)) +
-  scale_colour_manual(values = branded_colors1) +
   theme_classic(base_size = 18)
-ggsave("Figure 1D_tumor purity per tumorType_estimate.png", path= "./output/")
 
 anno %>% 
   ggplot(aes(tumorType, absolute, col = tumorType)) +
@@ -119,9 +115,7 @@ anno %>%
   geom_point(position = position_jitterdodge(0.5), alpha=0.9) +
   #geom_jitter(aes(fill=tumorType, shape=tumorType)) +
   scale_shape_manual(values = c(21, 25, 22, 23, 24, 8, 1)) +
-  scale_colour_manual(values = branded_colors1) +
   theme_classic(base_size = 18)
-ggsave("Figure 1D_tumor purity per tumorType_absolute.png", path= "./output/")
 
 # average methylation
 anno %>% 
@@ -129,10 +123,8 @@ anno %>%
   geom_boxplot(outlier.shape = NA) +
   geom_jitter(alpha=0.7) +
   scale_shape_manual(values = c(21, 25, 22, 23, 24, 8, 1)) +
-  scale_colour_manual(values = branded_colors1) +
   theme_bw(base_size = 18) +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
-ggsave("Figure 1C_average methylation.png", path= "./output/")
 
 # clean up
 rm(absolute, estimate, betas)
@@ -153,7 +145,7 @@ anno <- anno %>%
 # determine most variable probes across dataset and subset beta values
 probe_var <- apply(betas[, anno$cohort == "train"], 1, var)
 probes_topvar <- rownames(betas)[order(probe_var, decreasing = TRUE)]
-saveRDS(object = probes_topvar, file = "./output/pancreas_top_variable_probes_training_set.rds")
+saveRDS(object = probes_topvar, file = "./output/pancreas_top_variable_probes_training_set_24102023.rds")
 
 # pick betas for 5,000 top variable probes
 betas_topvar <- betas[probes_topvar[1:5000], ]
@@ -170,8 +162,8 @@ anno <- anno %>%
   mutate(umap_x = umap$layout[, 1], 
          umap_y = umap$layout[, 2])
 
-saveRDS(object = umap, file = "./output/umap_model.rds")
-saveRDS(object = anno, file = "./output/sample_annotation_umap_purity.rds")
+saveRDS(object = umap, file = "./output/umap_model_24102023.rds")
+saveRDS(object = anno, file = "./output/sample_annotation_umap_purity_24102023.rds")
 
 
 # plot UMAP
@@ -180,7 +172,6 @@ anno %>%
   geom_point(size = 4) +
   #geom_text(aes(label = sampleName), size = 4) +
   theme_classic(base_size = 24) +
-  scale_color_manual(values = branded_colors1) +
   theme(legend.direction = "horizontal", legend.position = "bottom") +
   labs(x = "UMAP 1", y = "UMAP 2")
 
