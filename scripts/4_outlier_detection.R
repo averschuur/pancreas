@@ -53,9 +53,8 @@ anno_tcga$tumorType[anno_tcga$tumorType == "ACC"] <- "ADC"
 # tcga data set stats
 anno_tcga %>% 
   group_by(tumorType) %>% 
-  summarise(n = n())
-
-
+  summarise(n = n()) %>% 
+  print(n = 29)
 
 # load models ------------------------------------------------------------------
 
@@ -175,7 +174,6 @@ rf_data_roc
 plot.roc(rf_data_roc)
 
 
-
 # train outlier detection model ------------------------------------------------
 
 # split data into train and test cohort
@@ -183,21 +181,25 @@ set.seed(23432)
 rf_data <- rf_data %>% 
   mutate(dataset = sample(c("train", "test"), size = nrow(rf_data), replace = TRUE))
 
+# calculate score entropy
+rf_data <- rf_data %>% 
+  mutate(entropy = apply(rf_data[, 2:8], 1, entropy))
+
+# train model
 od_model <- rf_data %>% 
   filter(dataset == "train") %>%
-  glm(class_int ~ winning_score + winning_class, data = ., family = 'binomial')
+  #glm(class_int ~ winning_score + winning_class, data = ., family = 'binomial')
+  glm(class_int ~ winning_score + winning_class + entropy, data = ., family = 'binomial')
 summary(od_model)
 
-od_pred <- rf_data %>%
-  predict(object = od_model, newdata = ., type = "response")
-
-rf_data <- rf_data %>% 
-  mutate(od_prob = od_pred, 
-         od_class = ifelse(od_prob > 0.5, "pancreas", "outlier"))
+rf_data <- rf_data %>%
+  mutate(od_score = predict(object = od_model, newdata = ., type = "response"), 
+         od_class = ifelse(od_score > 0.5, "pancreas", "outlier"))
 
 # plot outlier probability
 rf_data %>% 
-  ggplot(aes(class_char, od_prob, fill = class_char)) +
+  filter(dataset == "test") %>% 
+  ggplot(aes(class_char, od_score, fill = class_char)) +
   geom_boxplot(alpha = 0.5) +
   geom_hline(yintercept = 0.5, lty = 2, col = "steelblue") +
   theme_bw(base_size = 24) +
@@ -207,14 +209,21 @@ rf_data %>%
 
 # plot ROC curve
 od_prob_roc <- rf_data %>%
-  pROC::roc(class_int, od_prob)
+  filter(dataset == "test") %>% 
+  pROC::roc(class_int, od_score)
 plot.roc(od_prob_roc)
 od_prob_roc
 
+# confusion matrix
 rf_data %>% 
   filter(dataset == "test") %>%
   with(., table(class_char, od_class))
 
+# confusion matrix normalized
+rf_data %>% 
+  filter(dataset == "test") %>%
+  with(., table(class_char, od_class)) %>% 
+  apply(., 1, function(x) x / sum(x) * 100) %>% t
 
 
 # use different cutoffs for outlier probability
@@ -233,7 +242,7 @@ pred_class <- rf_data %>%
 
 score <- rf_data %>% 
   filter(dataset == "test") %>% 
-  pull(od_prob)
+  pull(od_score)
 
 pass <- NULL
 dropout <- NULL
@@ -261,6 +270,22 @@ cutoff_data %>%
   theme_bw(base_size = 24) +
   theme(legend.position = "none", legend.title = element_blank()) +
   labs(x = "Cutoff (outlier prob)", y = "Samples (%)")
+
+# are misclassified samples usually flagged as outliers?
+rf_data %>% 
+  filter(dataset == "test") %>% 
+  mutate(rf_correct = ifelse(winning_class == tumorType, 1, 0)) %>% 
+  filter(class_char == "pancreas") %>% 
+  with(., table(rf_correct, od_class))
+
+# normalize 
+rf_data %>% 
+  filter(dataset == "test") %>% 
+  mutate(rf_correct = ifelse(winning_class == tumorType, 1, 0)) %>% 
+  filter(class_char == "pancreas") %>% 
+  with(., table(rf_correct, od_class)) %>% 
+  apply(., 1, function(x) x / sum(x)) %>% 
+  t
 
 
 ### save results to disk ------------------------
