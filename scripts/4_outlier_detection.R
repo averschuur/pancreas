@@ -24,12 +24,12 @@ source("./scripts/0_helpers.R")
 
 # load data for pancreas data set ----------------------------------------------
 
-anno <- readRDS("./output/sample_annotation_umap_purity.rds")
+anno <- readRDS("./output/sample_annotation_umap_purity_24102023.rds")
 betas <- readRDS(file = "./input/betas_pancreas_everything.rds")
 betas <- betas[, anno$arrayId]
 
 # pick model probes
-topvar_probes <- readRDS(file = "./output/pancreas_top_variable_probes_training_set.rds")
+topvar_probes <- readRDS(file = "./output/pancreas_top_variable_probes_training_set_24102023.rds")
 topvar_probes <- topvar_probes[1:5000]
 betas <- betas[topvar_probes, ]
 
@@ -58,8 +58,8 @@ anno_tcga %>%
 
 # load models ------------------------------------------------------------------
 
-nn_model <- load_model_hdf5(filepath = "./output/nn_model.hdf5")
-rf_model <- readRDS(file = "./output/rf_model_default.rds")
+nn_model <- load_model_hdf5(filepath = "./output/nn_model_24102023.hdf5")
+rf_model <- readRDS(file = "./output/rf_model_default_24102023.rds")
 
 
 

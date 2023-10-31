@@ -253,8 +253,8 @@ anno <- anno %>%
          pred_scores_rf = apply(rf_pred_scores, 1, max), 
          pred_scores_xgb = apply(xgb_pred_scores, 1, max))
 
-#saveRDS(object = anno, file = "./output/sample_annotation_classifier_performance.rds")
-#anno <- readRDS("./output/sample_annotation_classifier_performance.rds")
+#saveRDS(object = anno, file = "./output/sample_annotation_classifier_performance_31102023.rds")
+#anno <- readRDS("./output/sample_annotation_classifier_performance_31102023.rds")
 
 
 # confusion matrices
@@ -262,8 +262,8 @@ test_indices <- which(anno$cohort == "test", arr.ind = TRUE)
 conf_mat <- list(rf_pred_class, xgb_pred_class, nn_pred_class)
 conf_mat <- lapply(conf_mat, function(x) x[test_indices])
 conf_mat <- lapply(conf_mat, function(x) confusionMatrix(x, test_set$y))
-#saveRDS(object = conf_mat, file = "./output/confusion_matrices.rds")
-#conf_mat <- readRDS("./output/confusion_matrices.rds")
+#saveRDS(object = conf_mat, file = "./output/confusion_matrices_31102023.rds")
+#conf_mat <- readRDS("./output/confusion_matrices_31102023.rds")
 
 # plot accuracy per algorithm
 perf_acc <- sapply(conf_mat, function(x) x[["overall"]][c(1, 3, 4)])

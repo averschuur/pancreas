@@ -54,7 +54,7 @@ anno %>%
         legend.key.size = unit(0.3, 'cm'),
         panel.grid = element_blank()) +
   guides(col = guide_legend(nrow = 1))
-ggsave("Figure 2B_UMAP-all.pdf", path= "./plots/", dpi=500)
+ggsave("Figure 2B_UMAP-all_25102023.pdf", path= "./plots/", dpi=500)
 
 
 # Figure 2C umap - avg beta
