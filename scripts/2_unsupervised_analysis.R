@@ -30,7 +30,7 @@ anno <- anno %>%
   filter(location %in% c("primary", "pancreas"))
 
 # exclude MiNEN and biopsy samples
-anno <- anno[c(1:268,271, 273, 275, 277:326),]
+anno <- anno[c(1:269,271, 273, 275, 277, 279:326),]
 
 
 # split into training and testing cohort ---------------------------------------
@@ -145,7 +145,7 @@ anno <- anno %>%
 # determine most variable probes across dataset and subset beta values
 probe_var <- apply(betas[, anno$cohort == "train"], 1, var)
 probes_topvar <- rownames(betas)[order(probe_var, decreasing = TRUE)]
-saveRDS(object = probes_topvar, file = "./output/pancreas_top_variable_probes_training_set_24102023.rds")
+saveRDS(object = probes_topvar, file = "./output/pancreas_top_variable_probes_training_set_01112023.rds")
 
 # pick betas for 5,000 top variable probes
 betas_topvar <- betas[probes_topvar[1:5000], ]
@@ -162,8 +162,8 @@ anno <- anno %>%
   mutate(umap_x = umap$layout[, 1], 
          umap_y = umap$layout[, 2])
 
-saveRDS(object = umap, file = "./output/umap_model_24102023.rds")
-saveRDS(object = anno, file = "./output/sample_annotation_umap_purity_24102023.rds")
+saveRDS(object = umap, file = "./output/umap_model_01112023.rds")
+saveRDS(object = anno, file = "./output/sample_annotation_umap_purity_01112023.rds")
 
 
 # plot UMAP

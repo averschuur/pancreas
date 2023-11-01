@@ -23,7 +23,7 @@ anno %>%
     legend.text = element_text(size = 14),
     legend.key.size = unit(0.4, 'cm'),
     panel.grid = element_blank())
-ggsave("Figure 3A_count Dataset by TuorType.pdf", path= "./plots/", dpi=500)
+ggsave("Figure 3A_count Dataset by TuorType_01112023.pdf", path= "./plots/", dpi=500)
 
 
 
@@ -48,7 +48,7 @@ perf_acc %>%
         panel.grid = element_blank()) +
   labs(title="Algorithm Performance",x = NULL, y = "Accuracy (test cohort)") +
   ylim(0, 1)
-ggsave("Figure3B_Algorithm Performance.pdf", path= "./plots/", dpi=500)
+ggsave("Figure3B_Algorithm Performance__01112023.pdf", path= "./plots/", dpi=500)
 
 
 
@@ -108,7 +108,7 @@ perf_per_class2 %>%
         legend.key.size = unit(0.3, 'cm'),
         panel.grid = element_blank()) +
   ylim(0, 1)
-ggsave("Figure3C_model_comparison_accuracies_all models.pdf", path= "./plots/", dpi=500)
+ggsave("Figure3C_model_comparison_accuracies_all models_01112023.pdf", path= "./plots/", dpi=500)
 
 
 
@@ -130,7 +130,7 @@ performance_cutoff %>%
         legend.position = "top") +
   facet_grid(cols = vars(method)) +
   labs(x = "Cutoff", y = "Accuracy/Predictable (%)")
-ggsave("Figure 3DEF_cutoff_vs_predictable_accuracy.pdf", path= "./plots/", dpi=500)
+ggsave("Figure 3DEF_cutoff_vs_predictable_accuracy_01112023.pdf", path= "./plots/", dpi=500)
 
 
 
@@ -164,7 +164,7 @@ ggplot(plt, aes(prediction,actual, fill= Freq)) +
         legend.text = element_text(size = 8),
         panel.border = element_blank(),
         panel.grid = element_blank())
-ggsave("Figure3G_ConfusionMatrix_nn.pdf", path= "./plots/", dpi=500)
+ggsave("Figure3G_ConfusionMatrix_nn_01112023.pdf", path= "./plots/", dpi=500)
 
 ## rf
 rf_cm <- table(prediction = rf_pred_class, actual = anno$tumorType) %>% 
@@ -192,7 +192,7 @@ ggplot(plt, aes(prediction,actual, fill= Freq)) +
         legend.text = element_text(size = 8),
         panel.border = element_blank(),
         panel.grid = element_blank())
-ggsave("Figure3H_ConfusionMatrix_rf.pdf", path= "./plots/", dpi=500)
+ggsave("Figure3H_ConfusionMatrix_rf_01112023.pdf", path= "./plots/", dpi=500)
 
 ## xgb
 xgb_nn<-table(prediction = xgb_pred_class, actual = anno$tumorType) %>% 
@@ -220,7 +220,7 @@ ggplot(plt, aes(prediction,actual, fill= Freq)) +
         legend.text = element_text(size = 8),
         panel.border = element_blank(),
         panel.grid = element_blank())
-ggsave("Figure3I_ConfusionMatrix_xgb.pdf", path= "./plots/", dpi=500)
+ggsave("Figure3I_ConfusionMatrix_xgb_01112023.pdf", path= "./plots/", dpi=500)
 
 
 
@@ -251,7 +251,7 @@ anno %>%
     legend.key.size = unit(0.3, 'cm'),
     panel.grid = element_blank()) +
   guides(col = guide_legend(nrow = 1))
-ggsave("Figure3J_correct classification TEST COHORT.pdf", path= "./plots/", dpi = 500, height = 6, width = 5.5, units = "in")
+ggsave("Figure3J_correct classification TEST COHORT_01112023.pdf", path= "./plots/", dpi = 500, height = 6, width = 5.5, units = "in")
 
 
 

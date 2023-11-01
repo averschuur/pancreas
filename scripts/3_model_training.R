@@ -7,7 +7,7 @@
 library(tidyverse)
 library(ggplot2)
 
-reticulate::use_condaenv("r-tensorflow")
+#reticulate::use_condaenv("r-tensorflow")
 library(keras)
 library(randomForest)
 library(xgboost)
@@ -21,11 +21,11 @@ source(file = "./scripts/0_helpers.R")
 
 # import annotation and data ---------------------------------------------------
 
-anno <- readRDS("./output/sample_annotation_umap_purity_24102023.rds")
+anno <- readRDS("./output/sample_annotation_umap_purity_01112023.rds")
 betas <- readRDS(file = "./input/betas_pancreas_everything.rds")
 
 # pick 5,000 most variable probes
-top_var_probes <- readRDS(file = "./output/pancreas_top_variable_probes_training_set_24102023.rds")
+top_var_probes <- readRDS(file = "./output/pancreas_top_variable_probes_training_set_01112023.rds")
 top_var_probes <- top_var_probes[1:5000]
 
 # filter
@@ -49,13 +49,22 @@ train_set_upsampled <- upSample(train_set$x, train_set$y, list = TRUE)
 train_set_upsampled$onehot <- to_one_hot(train_set_upsampled$y)
 test_set$onehot <- to_one_hot(test_set$y)
 
-#saveRDS(object = train_set_upsampled, file = "./output/train_set_upsampled.rds")
-#saveRDS(object = test_set, file = "./output/test_set.rds")
+#saveRDS(object = train_set_upsampled, file = "./output/train_set_upsampled_01112023.rds")
+#saveRDS(object = test_set, file = "./output/test_set_01112023.rds")
 
-#train_set_upsampled <- readRDS("./output/train_set_upsampled_24102023.rds")
-#test_set <- readRDS("./output/test_set_24102023.rds")
+train_set_upsampled <- readRDS("./output/train_set_upsampled_01112023.rds")
+test_set <- readRDS("./output/test_set_01112023.rds")
 
+# set up training parameters ---------------------------------------------------
 
+# 10-fold cross validation, repeated three times
+control <- trainControl(method = "repeatedcv", 
+                        number = 10,
+                        repeats = 3)
+
+# parallel processing
+registerDoParallel(cores = 6)
+getDoParWorkers()
 
 # default random forest, no tuning ---------------------------------------------
 
@@ -72,8 +81,8 @@ rf_pred <- predict(rf_model, newdata = test_set$x)
 rf_cfmatrix <- confusionMatrix(rf_pred, test_set$y)
 rf_cfmatrix
 
-#saveRDS(object = rf_model, file = "./output/rf_model_default_24102023.rds")
-#saveRDS(object = rf_cfmatrix, file = "./output/rf_confusion_matrix_24102023.rds")
+#saveRDS(object = rf_model, file = "./output/rf_model_default_01112023.rds")
+#saveRDS(object = rf_cfmatrix, file = "./output/rf_confusion_matrix_01112023.rds")
 
 
 
@@ -98,8 +107,8 @@ xgb_pred <- predict(xgb_model, newdata = test_set$x)
 xgb_cfmatrix <- confusionMatrix(xgb_pred, test_set$y)
 xgb_cfmatrix
 
-#saveRDS(object = xgb_model, file = "./output/xgb_model_default_24102023.rds")
-#saveRDS(object = xgb_cfmatrix, file = "./output/xgb_confusion_matrix_24102023.rds")
+#saveRDS(object = xgb_model, file = "./output/xgb_model_default_01112023.rds")
+#saveRDS(object = xgb_cfmatrix, file = "./output/xgb_confusion_matrix_01112023.rds")
 
 
 
@@ -215,16 +224,16 @@ nn_model %>% fit(
 nn_model %>% evaluate(as.matrix(test_set$x), test_set$onehot)
 
 # save model and performance history
-save_model_hdf5(object = nn_model, filepath = "./output/nn_model_24102023.hdf5")
-saveRDS(object = perf_hist, file = "./output/nn_model_performance_history_24102023.rds")
+#save_model_hdf5(object = nn_model, filepath = "./output/nn_model_01112023.hdf5")
+#saveRDS(object = perf_hist, file = "./output/nn_model_performance_history_01112023.rds")
 
 
 
 # compare model performance ------------------------------------------
 
-rf_model <- readRDS(file = "./output/rf_model_default_24102023.rds")
-xgb_model <- readRDS(file = "./output/xgb_model_default_24102023.rds")
-nn_model <- load_model_hdf5(file = "./output/nn_model_24102023.hdf5")
+rf_model <- readRDS(file = "./output/rf_model_default_01112023.rds")
+xgb_model <- readRDS(file = "./output/xgb_model_default_01112023.rds")
+nn_model <- load_model_hdf5(file = "./output/nn_model_01112023.hdf5")
 
 # rf predictions
 rf_pred_class <- predict(rf_model, newdata = t(betas))
@@ -253,7 +262,7 @@ anno <- anno %>%
          pred_scores_rf = apply(rf_pred_scores, 1, max), 
          pred_scores_xgb = apply(xgb_pred_scores, 1, max))
 
-#saveRDS(object = anno, file = "./output/sample_annotation_classifier_performance_31102023.rds")
+#saveRDS(object = anno, file = "./output/sample_annotation_classifier_performance_01112023.rds")
 #anno <- readRDS("./output/sample_annotation_classifier_performance_31102023.rds")
 
 
@@ -262,8 +271,8 @@ test_indices <- which(anno$cohort == "test", arr.ind = TRUE)
 conf_mat <- list(rf_pred_class, xgb_pred_class, nn_pred_class)
 conf_mat <- lapply(conf_mat, function(x) x[test_indices])
 conf_mat <- lapply(conf_mat, function(x) confusionMatrix(x, test_set$y))
-#saveRDS(object = conf_mat, file = "./output/confusion_matrices_31102023.rds")
-#conf_mat <- readRDS("./output/confusion_matrices_31102023.rds")
+#saveRDS(object = conf_mat, file = "./output/confusion_matrices_01112023.rds")
+#conf_mat <- readRDS("./output/confusion_matrices_01112023.rds")
 
 # plot accuracy per algorithm
 perf_acc <- sapply(conf_mat, function(x) x[["overall"]][c(1, 3, 4)])
@@ -383,8 +392,8 @@ cutoff_xgb <- cutoff_xgb %>%
   add_column(method = "XGB", .before = TRUE)
 
 performance_cutoff <- rbind(cutoff_nn, cutoff_rf, cutoff_xgb)
-#saveRDS(object = performance_cutoff, file = "./output/performance_cutoff.rds")
-#performance_cutoff <- readRDS("./output/performance_cutoff.rds")
+#saveRDS(object = performance_cutoff, file = "./output/performance_cutoff_01112023.rds")
+#performance_cutoff <- readRDS("./output/performance_cutoff_01112023.rds")
 rm(cutoff_nn, cutoff_rf, cutoff_xgb)
 
 # plot cutoff vs. predictable / accuracy
