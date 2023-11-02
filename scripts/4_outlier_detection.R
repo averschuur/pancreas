@@ -24,12 +24,12 @@ source("./scripts/0_helpers.R")
 
 # load data for pancreas data set ----------------------------------------------
 
-anno <- readRDS("./output/sample_annotation_umap_purity_24102023.rds")
+anno <- readRDS("./output/sample_annotation_umap_purity_01112023.rds")
 betas <- readRDS(file = "./input/betas_pancreas_everything.rds")
 betas <- betas[, anno$arrayId]
 
 # pick model probes
-topvar_probes <- readRDS(file = "./output/pancreas_top_variable_probes_training_set_24102023.rds")
+topvar_probes <- readRDS(file = "./output/pancreas_top_variable_probes_training_set_01112023.rds")
 topvar_probes <- topvar_probes[1:5000]
 betas <- betas[topvar_probes, ]
 
@@ -38,8 +38,8 @@ betas <- betas[topvar_probes, ]
 # load data for TCGA cases -----------------------------------------------------
 
 # processing was performed on server
-anno_tcga <- readRDS("./output/sample_anno_tcga.rds")
-betas_tcga <- readRDS(file = "./input/betas_tcga_modelprobes.rds")
+anno_tcga <- readRDS("./output/sample_anno_tcga_01112023.rds")
+betas_tcga <- readRDS(file = "./input/betas_tcga_modelprobes_01112023.rds")
 betas_tcga <- betas_tcga[, anno_tcga$basename]
 
 # rename TCGA columnns
@@ -58,8 +58,8 @@ anno_tcga %>%
 
 # load models ------------------------------------------------------------------
 
-nn_model <- load_model_hdf5(filepath = "./output/nn_model_24102023.hdf5")
-rf_model <- readRDS(file = "./output/rf_model_default_24102023.rds")
+nn_model <- load_model_hdf5(filepath = "./output/nn_model_01112023.hdf5")
+rf_model <- readRDS(file = "./output/rf_model_default_01112023.rds")
 
 
 
@@ -94,6 +94,17 @@ nn_scores_max <- nn_scores_all %>%
          pred_class = c(as.character(nn_classes_tcga), as.character(nn_classes_pancreas))) %>% 
   select(class_char, class_int, score, pred_class)
 
+# plot distribution for TCGA classification results
+nn_scores_max %>% 
+  filter(class_char == "outlier") %>% 
+  group_by(winning_class) %>% 
+  summarise(n = n()) %>% 
+  mutate(prop = n/sum(n)*100) %>% 
+  ggplot(aes(winning_class, prop, fill = winning_class)) +
+  geom_col() +
+  theme_bw(base_size = 24) +
+  labs(x = "Predicted class", y = "Proportion of TCGA samples") +
+  theme(legend.position = "none")
 
 # plot score distribution 
 nn_scores_max %>% 
@@ -159,9 +170,8 @@ rf_data %>%
 
 # plot score distribution with resolution per class
 rf_data %>% 
-  filter(winning_class %in% c("ACC", "PanNET", "PDAC")) %>% 
+  filter(winning_class %in% c("ACC", "NORM", "PanNEC", "PanNET", "PB", "PDAC", "SPN")) %>% 
   ggplot(aes(class_char, winning_score, fill = winning_class)) +
-  scale_fill_manual(values = branded_colors3) +
   geom_boxplot(alpha = 0.5) +
   theme_bw(base_size = 20) +
   facet_wrap(facets = vars(winning_class)) +
@@ -289,5 +299,5 @@ rf_data %>%
 
 
 ### save results to disk ------------------------
-saveRDS(object = od_model, file = "./output/outlier_det_model.rds")
-saveRDS(object = rf_data, file = "./output/outlier_det_results.rds")
+saveRDS(object = od_model, file = "./output/outlier_det_model_01112023.rds")
+saveRDS(object = rf_data, file = "./output/outlier_det_results_01112023.rds")

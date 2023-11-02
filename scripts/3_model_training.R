@@ -42,12 +42,12 @@ test_set$x <- t(betas[, anno$cohort == "test"])
 test_set$y <- as.factor(anno$tumorType[anno$cohort == "test"])
 
 # upsample the training cohort
-set.seed(234234)
-train_set_upsampled <- upSample(train_set$x, train_set$y, list = TRUE)
+#set.seed(234234)
+#train_set_upsampled <- upSample(train_set$x, train_set$y, list = TRUE)
 
 # add one-hot converted y for neural networks
-train_set_upsampled$onehot <- to_one_hot(train_set_upsampled$y)
-test_set$onehot <- to_one_hot(test_set$y)
+#train_set_upsampled$onehot <- to_one_hot(train_set_upsampled$y)
+#test_set$onehot <- to_one_hot(test_set$y)
 
 #saveRDS(object = train_set_upsampled, file = "./output/train_set_upsampled_01112023.rds")
 #saveRDS(object = test_set, file = "./output/test_set_01112023.rds")
@@ -267,7 +267,7 @@ anno <- anno %>%
          pred_scores_xgb = apply(xgb_pred_scores, 1, max))
 
 #saveRDS(object = anno, file = "./output/sample_annotation_classifier_performance_01112023.rds")
-#anno <- readRDS("./output/sample_annotation_classifier_performance_31102023.rds")
+#anno <- readRDS("./output/sample_annotation_classifier_performance_01112023.rds")
 
 
 # confusion matrices
@@ -305,10 +305,8 @@ ANOVA <- rbind(ANOVA, ANOVA3)
 attach(ANOVA)
 boxplot(Accuracy~method)
 
-
 mfit <- lm(Accuracy~factor(method))
 anova(mfit)
-
 
 
 # plot accuracy across different classes RF
