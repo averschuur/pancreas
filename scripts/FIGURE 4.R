@@ -23,10 +23,10 @@ anno_tcga %>%
     axis.ticks = element_blank(),
     legend.position = "none",
     panel.grid = element_blank())
-ggsave("Figure 4A_count TCGA Dataset.pdf", path= "./plots/", dpi=500)
+ggsave("Figure 4A_count TCGA Dataset_06112023.pdf", path= "./plots/", dpi=500)
 
 
-### Figure 4B: plot confusion matrix ------------------------------------------
+### Figure 4B: plot confusion matrix RF ------------------------------------------
 rf_scores_tcga <- rf_scores_tcga %>%
   mutate(winning_class = rf_class_tcga, 
          winning_score = rf_scores_tcga_max, 
@@ -37,7 +37,7 @@ rf_scores_tcga <- rf_scores_tcga %>%
 rf_tcga_plot <- rf_scores_tcga %>% 
   select(tumorType, winning_class) %>% 
   group_by(tumorType, winning_class) %>%
-  count() 
+  count()
 
 rf_tcga_plot %>%
   ggplot(aes(winning_class, tumorType)) +
@@ -55,95 +55,52 @@ rf_tcga_plot %>%
     legend.key.size = unit(0.4, 'cm'),
     panel.grid = element_blank()) +
   labs(x = NULL)
-ggsave("Figure 4B_tcga prediction by rf.pdf", path= "./plots/", dpi=500)
+ggsave("Figure 4B_TCGA prediction by RF_06112023.pdf", path= "./plots/", dpi=500)
 
 
-### Figure 4C-E: RF score distributions for the three classes from B for outliers vs. pancreatic cancers-------------------------
-rf_data %>% 
-  filter(winning_class %in% c("ACC", "PanNET", "PDAC")) %>% 
-  ggplot(aes(class_char, winning_score, fill = winning_class)) +
+### Figure 4C: RF score distribution TCGA samples -------------------------
+rf_data %>%
+  ggplot(aes(class_char, winning_score, fill = class_char)) +
   geom_boxplot(alpha = 0.5) +
-  facet_wrap(facets = vars(winning_class)) +
-  labs(x = NULL, y = "Random Forest Score") +
-  paletteer::scale_fill_paletteer_d("rcartocolor::Safe", labels = c("Non-pancreatic Tumor", "Pancreatic Tumor")) +
+  labs(#title="Tumor Type By Source",
+    x = "", y = "Random Forest Score Distribution", fill = "Location") +
+  paletteer::scale_fill_paletteer_d("rcartocolor::Safe", labels = c("Non-pancreatic tumor", "Pancreatic Tumor")) +
+  scale_x_discrete(limits = c("outlier", "pancreas"),
+                   breaks = c("outlier", "pancreas"),
+                   labels = c("Non-pancreatic tumor", "Pancreatic tumor")) +
+  #geom_hline(yintercept = 0.5, lty = 2, col = "steelblue") +
   theme_bw(base_size = 18) +
   theme(#plot.title = element_text(face = "bold", hjust = 0, size = 14),
     axis.title.y = element_text(face = "bold", hjust = 0.5, vjust=2, size = 12),
     axis.text.x = element_text(face = "bold", size = 11, vjust=0, hjust=0.5),
     axis.ticks = element_blank(),
-    legend.position = "none",
+    legend.position = "top",
+    legend.title = element_text(face = "bold", size = 14),
+    legend.text = element_text(size = 14),
+    legend.key.size = unit(0.4, 'cm'),
     panel.grid = element_blank())
-ggsave("Figure 4CDE_RF score distributions for the three classes.pdf", width = 8, height = 3, units = "in", path= "./plots/", dpi=500)
+ggsave("Figure 4F_RF score distribution TCGA samples_06112023.pdf", path= "./plots/", dpi=500)
 
-### stats ACC
-rf_data_ACC <- rf_data %>%
-  filter(winning_class %in% "ACC")
+### Figure 4D: ROC -------------------------
+ggroc(rf_data_roc) +
+  theme_bw(base_size = 18) +
+  theme(#plot.title = element_text(face = "bold", hjust = 0, size = 14),
+    axis.title.y = element_text(face = "bold", hjust = 0.5, vjust=2, size = 12),
+    axis.text.x = element_text(face = "bold", size = 11, vjust=0, hjust=0.5),
+    axis.ticks = element_blank(),
+    legend.position = "top",
+    legend.title = element_text(face = "bold", size = 14),
+    legend.text = element_text(size = 14),
+    legend.key.size = unit(0.4, 'cm'),
+    panel.grid = element_blank())
+ggsave("Figure 4_RF ROC_no logistic regression_06112023.pdf", width = 8, height = 3, units = "in", path= "./plots/", dpi=500)
 
-rf_data_ACC %>%
-  group_by(class_char) %>% 
-  summarise(n = n())
-#1 outlier       76
-#2 pancreas      48
-  
-t.test(rf_data_ACC$winning_score ~ rf_data_ACC$class_char,  paired = F)
-#Welch Two Sample t-test
 
-#data:  rf_data_ACC$winning_score by rf_data_ACC$class_char
-#t = -17.655, df = 49.826, p-value < 0.00000000000000022
-#alternative hypothesis: true difference in means between group outlier and group pancreas is not equal to 0
-#95 percent confidence interval:
-#  -0.5749651 -0.4574954
-#sample estimates:
-#  mean in group outlier mean in group pancreas 
-#0.2953947              0.8116250 
+# Figure 4E: Outlier probability after logistic regression --------------------------------------------------
 
-t.test(rf_data_ACC$winning_score ~ rf_data_ACC$class_char,  paired = F, var.equal=TRUE)
-#Two Sample t-test
-
-#data:  rf_data_ACC$winning_score by rf_data_ACC$class_char
-#t = -21.791, df = 122, p-value < 0.00000000000000022
-#alternative hypothesis: true difference in means between group outlier and group pancreas is not equal to 0
-#95 percent confidence interval:
-#  -0.5631273 -0.4693332
-#sample estimates:
-#  mean in group outlier mean in group pancreas 
-#0.2953947              0.8116250 
-
-### stats pNET
-rf_data_pNET <-rf_data %>%
-  filter(winning_class %in% "PanNET")
-
-t.test(rf_data_pNET$winning_score ~ rf_data_pNET$class_char,  paired = F, var.equal=TRUE)
-#Two Sample t-test
-
-#data:  rf_data_pNET$winning_score by rf_data_pNET$class_char
-#t = -29.068, df = 394, p-value < 0.00000000000000022
-#alternative hypothesis: true difference in means between group outlier and group pancreas is not equal to 0
-#95 percent confidence interval:
-#  -0.4917732 -0.4294649
-#sample estimates:
-#  mean in group outlier mean in group pancreas 
-#0.4131111              0.8737302
-
-### stats PDAC
-rf_data_PDAC <-rf_data %>%
-  filter(winning_class %in% "PanNET")
-
-t.test(rf_data_PDAC$winning_score ~ rf_data_PDAC$class_char,  paired = F, var.equal=TRUE)
-#Two Sample t-test
-
-#data:  rf_data_PDAC$winning_score by rf_data_PDAC$class_char
-#t = -29.068, df = 394, p-value < 0.00000000000000022
-#alternative hypothesis: true difference in means between group outlier and group pancreas is not equal to 0
-#95 percent confidence interval:
-#  -0.4917732 -0.4294649
-#sample estimates:
-#  mean in group outlier mean in group pancreas 
-#0.4131111              0.8737302 
-
-# Figure 4F: Outlier probability --------------------------------------------------
 rf_data %>% 
-  ggplot(aes(class_char, od_prob, fill = class_char)) +
+  filter(dataset == "test") %>%
+  ggplot(aes(class_char, od_score, fill = class_char)) +
   geom_boxplot(alpha = 0.5) +
   labs(#title="Tumor Type By Source",
     x = "", y = "Outlier probability", fill = "Location") +
@@ -162,7 +119,22 @@ rf_data %>%
     legend.text = element_text(size = 14),
     legend.key.size = unit(0.4, 'cm'),
     panel.grid = element_blank())
-ggsave("Figure 4F_score distribution logistic regresiion.pdf", path= "./plots/", dpi=500)
+ggsave("Figure 4F_score distribution logistic regresiion_06112023.pdf", path= "./plots/", dpi=500)
+
+### Figure 4F: plot ROC after logistic regression -------------------------
+ggroc(od_prob_roc) +
+  theme_bw(base_size = 18) +
+  theme(#plot.title = element_text(face = "bold", hjust = 0, size = 14),
+    axis.title.y = element_text(face = "bold", hjust = 0.5, vjust=2, size = 12),
+    axis.text.x = element_text(face = "bold", size = 11, vjust=0, hjust=0.5),
+    axis.ticks = element_blank(),
+    legend.position = "top",
+    legend.title = element_text(face = "bold", size = 14),
+    legend.text = element_text(size = 14),
+    legend.key.size = unit(0.4, 'cm'),
+    panel.grid = element_blank())
+ggsave("Figure 4_RF ROC_after logistic regression_06112023.pdf", width = 8, height = 3, units = "in", path= "./plots/", dpi=500)
+
 
 
 # Figure 4GH: Plot dropout and pass------------------------------------------------
@@ -182,27 +154,5 @@ cutoff_data %>%
     legend.position = "none",
     panel.grid = element_blank())
 ggsave("Figure 4GH_dropout and pass_lr.pdf", path= "./plots/", dpi=500)
-
-
-######### EXTRA FIGURES #########
-
-# plot ROC curve
-od_prob_roc <- rf_data %>%
-  pROC::roc(class_int, od_prob)
-pROC::plot.roc(od_prob_roc)
-od_prob_roc
-
-ggroc(od_prob_roc, color = 'steelblue', size =1) +
-  theme_bw(base_size = 18) +
-  theme(#plot.title = element_text(face = "bold", hjust = 0, size = 14),
-    axis.title.y = element_text(face = "bold", hjust = 0.5, vjust=2, size = 12),
-    axis.text.x = element_text(face = "bold", size = 11, vjust=0, hjust=0.5),
-    axis.ticks = element_blank(),
-    legend.position = "top",
-    legend.title = element_text(face = "bold", size = 14),
-    legend.text = element_text(size = 14),
-    legend.key.size = unit(0.4, 'cm'),
-    panel.grid = element_blank())
-ggsave("Figure 4_ROC.pdf", path= "./plots/", dpi=500)
 
                  
