@@ -40,7 +40,12 @@ betas <- betas[topvar_probes, ]
 # processing was performed on server
 anno_tcga <- readRDS("./output/sample_anno_tcga_01112023.rds")
 betas_tcga <- readRDS(file = "./input/betas_tcga_modelprobes_01112023.rds")
+
+anno_tcga <- anno_tcga %>%
+  filter(anno_tcga$basename == colnames(betas_tcga))
+
 betas_tcga <- betas_tcga[, anno_tcga$basename]
+
 
 # rename TCGA columnns
 anno_tcga <- anno_tcga[,c(1,4)]
@@ -96,11 +101,11 @@ nn_scores_max <- nn_scores_all %>%
 
 # plot distribution for TCGA classification results
 nn_scores_max %>% 
-  filter(class_char == "outlier") %>% 
-  group_by(winning_class) %>% 
+  filter(class_char == "tcga") %>% 
+  group_by(pred_class) %>% 
   summarise(n = n()) %>% 
   mutate(prop = n/sum(n)*100) %>% 
-  ggplot(aes(winning_class, prop, fill = winning_class)) +
+  ggplot(aes(pred_class, prop, fill = pred_class)) +
   geom_col() +
   theme_bw(base_size = 24) +
   labs(x = "Predicted class", y = "Proportion of TCGA samples") +
