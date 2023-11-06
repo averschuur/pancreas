@@ -29,11 +29,11 @@ ggsave("Figure 2A_count tumorType.pdf", path= "./plots/", dpi=500)
 # Figure 2B: UMAP
 anno %>% 
   ggplot(aes(umap_x, umap_y)) + 
-  geom_point(aes(color = tumorType), shape=19, size = 4) +
+  geom_point(aes(color = tumorType), shape=19, size = 3) +
   paletteer::scale_color_paletteer_d("rcartocolor::Safe",
-                                     limits = c("PDAC", "ACC", "PanNET","PanNEC", "SPN", "PB", "normal"),
-                                     breaks = c("PDAC", "ACC", "PanNET","PanNEC", "SPN", "PB", "normal"),
-                                     labels = c("PDAC", "ACC", "PanNET","PanNEC", "SPN", "PB", "NORMAL")) +
+                                     limits = c("PDAC", "ACC", "PanNET","PanNEC", "SPN", "PB", "NORM"),
+                                     breaks = c("PDAC", "ACC", "PanNET","PanNEC", "SPN", "PB", "NORM"),
+                                     labels = c("PDAC", "ACC", "PanNET","PanNEC", "SPN", "PB", "NORM")) +
   labs(#title="UMAP Clustering",
        x = "UMAP 1", 
        y = "UMAP 2",
@@ -54,7 +54,7 @@ anno %>%
         legend.key.size = unit(0.3, 'cm'),
         panel.grid = element_blank()) +
   guides(col = guide_legend(nrow = 1))
-ggsave("Figure 2B_UMAP-all_25102023.pdf", path= "./plots/", dpi=500)
+ggsave("Figure 2B_UMAP-all_06112023.pdf", path= "./plots/", dpi=500)
 
 
 # Figure 2C umap - avg beta
