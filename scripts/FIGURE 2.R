@@ -1,6 +1,6 @@
-####################################################
-### FIGURE 2: Methods & baseline characteristics ###
-####################################################
+##################################################
+### FIGURE 2: UMAP of pancreatic tumor dataset ###
+##################################################
 
 library(gridExtra)
 
@@ -32,7 +32,7 @@ anno %>%
         legend.key.size = unit(0.3, 'cm'),
         panel.grid = element_blank()) +
   guides(col = guide_legend(nrow = 1))
-ggsave("Figure 2B_UMAP-all_06112023.pdf", path= "./plots/", dpi=500)
+ggsave("Figure 2_UMAP-all_06112023.pdf", path= "./plots/", dpi=500)
 
 
 
