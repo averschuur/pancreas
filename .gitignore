@@ -10,6 +10,7 @@ plots/*
 test/*
 >>>>>>> 47a5924fa083a9a4d75d6e7e56d0928e4f20a2b5
 input/*
+output/umap_model_all probes_07112023.rds
 plots/*
 backup AV/*
 scripts/backup/*
