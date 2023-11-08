@@ -346,10 +346,6 @@ incorrect_rf <- anno %>%
   mutate(correct = ifelse(tumorType == pred_rf, "correct", "incorrect")) %>%
   subset(correct == "incorrect")
 
-correct_rf <- anno %>% 
-  mutate(correct = ifelse(tumorType == pred_rf, "correct", "incorrect")) %>%
-  subset(correct == "correct")
-
 # NN
 incorrect_nn <- anno %>% 
   mutate(correct = ifelse(tumorType == pred_nn, "correct", "incorrect")) %>%
