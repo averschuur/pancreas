@@ -79,7 +79,7 @@ rf_data %>%
     legend.text = element_text(size = 14),
     legend.key.size = unit(0.4, 'cm'),
     panel.grid = element_blank())
-ggsave("Figure 4F_RF score distribution TCGA samples_06112023.pdf", path= "./plots/", dpi=500)
+ggsave("Figure 4C_RF score distribution TCGA samples_06112023.pdf", path= "./plots/", dpi=500)
 
 ### Figure 4D: ROC -------------------------
 ggroc(rf_data_roc) +
@@ -93,7 +93,7 @@ ggroc(rf_data_roc) +
     legend.text = element_text(size = 14),
     legend.key.size = unit(0.4, 'cm'),
     panel.grid = element_blank())
-ggsave("Figure 4_RF ROC_no logistic regression_06112023.pdf", width = 8, height = 3, units = "in", path= "./plots/", dpi=500)
+ggsave("Figure 4D_RF ROC_no logistic regression_06112023.pdf", width = 8, height = 3, units = "in", path= "./plots/", dpi=500)
 
 
 # Figure 4E: Outlier probability after logistic regression --------------------------------------------------
@@ -119,7 +119,7 @@ rf_data %>%
     legend.text = element_text(size = 14),
     legend.key.size = unit(0.4, 'cm'),
     panel.grid = element_blank())
-ggsave("Figure 4F_score distribution logistic regresiion_06112023.pdf", path= "./plots/", dpi=500)
+ggsave("Figure 4E_score distribution logistic regresiion_06112023.pdf", path= "./plots/", dpi=500)
 
 ### Figure 4F: plot ROC after logistic regression -------------------------
 ggroc(od_prob_roc) +
@@ -133,7 +133,7 @@ ggroc(od_prob_roc) +
     legend.text = element_text(size = 14),
     legend.key.size = unit(0.4, 'cm'),
     panel.grid = element_blank())
-ggsave("Figure 4_RF ROC_after logistic regression_06112023.pdf", width = 8, height = 3, units = "in", path= "./plots/", dpi=500)
+ggsave("Figure 4F_RF ROC_after logistic regression_06112023.pdf", width = 8, height = 3, units = "in", path= "./plots/", dpi=500)
 
 
 
@@ -154,5 +154,3 @@ cutoff_data %>%
     legend.position = "none",
     panel.grid = element_blank())
 ggsave("Figure 4GH_dropout and pass_lr_06112023.pdf", path= "./plots/", dpi=500)
-
-                 
