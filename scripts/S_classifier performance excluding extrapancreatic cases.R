@@ -1,4 +1,4 @@
-### Model performance remocing outliers from oancreatic dataset
+### Model performance remocing outliers from pancreatic dataset
 
 ## 1: identify number of incorrectly classified tumors classified as outlier ---------------
 # load data
