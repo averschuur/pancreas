@@ -162,15 +162,13 @@ rf_data %>%
   geom_col() +
   theme_bw(base_size = 24) +
   labs(x = "Predicted class", y = "Proportion of TCGA samples") +
-  theme(legend.position = "none") +
-  scale_fill_manual(values = branded_colors3)
+  theme(legend.position = "none")
 
 # plot score distribution 
 rf_data %>% 
   ggplot(aes(class_char, winning_score, fill = class_char)) +
   geom_boxplot(alpha = 0.5) +
   theme_bw(base_size = 20) +
-  scale_fill_manual(values = branded_colors2) +
   labs(x = NULL, y = "Random Forest Score")
 
 # plot score distribution with resolution per class
@@ -211,6 +209,10 @@ rf_data <- rf_data %>%
   mutate(od_score = predict(object = od_model, newdata = ., type = "response"), 
          od_class = ifelse(od_score > 0.5, "pancreas", "outlier"))
 
+# load data
+od_model <- readRDS("./output/outlier_det_model_01112023.rds")
+rf_data <- readRDS("./output/outlier_det_results_01112023.rds")
+
 # plot outlier probability
 rf_data %>% 
   filter(dataset == "test") %>% 
@@ -219,8 +221,7 @@ rf_data %>%
   geom_hline(yintercept = 0.5, lty = 2, col = "steelblue") +
   theme_bw(base_size = 24) +
   theme(legend.position = "none") +
-  labs(x = NULL, y = "Outlier Probability") +
-  scale_fill_manual(values = branded_colors2)
+  labs(x = NULL, y = "Outlier Probability")
 
 # plot ROC curve
 od_prob_roc <- rf_data %>%
@@ -272,14 +273,14 @@ for (i in 1:length(cutoffs)){
 }
 
 cutoff_data <- tibble(cutoff = cutoffs, 
-                         pass = pass * 100, 
-                         dropout = dropout * 100)
+                      pass = pass * 100, 
+                      dropout = dropout * 100)
 
 cutoff_data %>% 
   pivot_longer(cols = -cutoff) %>% 
   filter(cutoff > 0) %>% 
   ggplot(aes(cutoff, value, col = name)) + 
-    geom_line(lwd = 2) +
+  geom_line(lwd = 2) +
   geom_vline(xintercept = 0.5, col = "steelblue", lty = 2) +
   facet_wrap(facets = vars(name), scales = "free", ncol = 1) +
   theme_bw(base_size = 24) +
@@ -304,5 +305,5 @@ rf_data %>%
 
 
 ### save results to disk ------------------------
-saveRDS(object = od_model, file = "./output/outlier_det_model_01112023.rds")
-saveRDS(object = rf_data, file = "./output/outlier_det_results_01112023.rds")
+#saveRDS(object = od_model, file = "./output/outlier_det_model_01112023.rds")
+#saveRDS(object = rf_data, file = "./output/outlier_det_results_01112023.rds")
