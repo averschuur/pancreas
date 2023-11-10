@@ -145,7 +145,7 @@ anno <- anno %>%
 # determine most variable probes across dataset and subset beta values
 probe_var <- apply(betas[, anno$cohort == "train"], 1, var)
 probes_topvar <- rownames(betas)[order(probe_var, decreasing = TRUE)]
-saveRDS(object = probes_topvar, file = "./output/pancreas_top_variable_probes_training_set_01112023.rds")
+#saveRDS(object = probes_topvar, file = "./output/pancreas_top_variable_probes_training_set_0112023.rds")
 
 # pick betas for 5,000 top variable probes
 betas_topvar <- betas[probes_topvar[1:5000], ]

@@ -21,11 +21,11 @@ source(file = "./scripts/0_helpers.R")
 
 # import annotation and data ---------------------------------------------------
 
-anno <- readRDS("./output/sample_annotation_umap_purity_01112023.rds")
+anno <- readRDS("./output/sample_annotation_umap_purity_09112023.rds")
 betas <- readRDS(file = "./input/betas_pancreas_everything.rds")
 
 # pick 5,000 most variable probes
-top_var_probes <- readRDS(file = "./output/pancreas_top_variable_probes_training_set_01112023.rds")
+top_var_probes <- readRDS(file = "./output/pancreas_top_variable_probes_training_set_09112023.rds")
 top_var_probes <- top_var_probes[1:5000]
 
 # filter
@@ -52,8 +52,8 @@ test_set$y <- as.factor(anno$tumorType[anno$cohort == "test"])
 #saveRDS(object = train_set_upsampled, file = "./output/train_set_upsampled_01112023.rds")
 #saveRDS(object = test_set, file = "./output/test_set_01112023.rds")
 
-train_set_upsampled <- readRDS("./output/train_set_upsampled_01112023.rds")
-test_set <- readRDS("./output/test_set_01112023.rds")
+train_set_upsampled <- readRDS("./output/train_set_upsampled_09112023.rds")
+test_set <- readRDS("./output/test_set_09112023.rds")
 
 
 
@@ -85,8 +85,8 @@ rf_pred <- predict(rf_model, newdata = test_set$x)
 rf_cfmatrix <- confusionMatrix(rf_pred, test_set$y)
 rf_cfmatrix
 
-#saveRDS(object = rf_model, file = "./output/rf_model_default_01112023.rds")
-#saveRDS(object = rf_cfmatrix, file = "./output/rf_confusion_matrix_01112023.rds")
+#saveRDS(object = rf_model, file = "./output/rf_model_default_09112023.rds")
+#saveRDS(object = rf_cfmatrix, file = "./output/rf_confusion_matrix_09112023.rds")
 
 
 
@@ -111,8 +111,8 @@ xgb_pred <- predict(xgb_model, newdata = test_set$x)
 xgb_cfmatrix <- confusionMatrix(xgb_pred, test_set$y)
 xgb_cfmatrix
 
-#saveRDS(object = xgb_model, file = "./output/xgb_model_default_01112023.rds")
-#saveRDS(object = xgb_cfmatrix, file = "./output/xgb_confusion_matrix_01112023.rds")
+#saveRDS(object = xgb_model, file = "./output/xgb_model_default_09112023.rds")
+#saveRDS(object = xgb_cfmatrix, file = "./output/xgb_confusion_matrix_09112023.rds")
 
 
 
@@ -228,16 +228,16 @@ nn_model %>% fit(
 nn_model %>% evaluate(as.matrix(test_set$x), test_set$onehot)
 
 # save model and performance history
-#save_model_hdf5(object = nn_model, filepath = "./output/nn_model_01112023.hdf5")
-#saveRDS(object = perf_hist, file = "./output/nn_model_performance_history_01112023.rds")
+#save_model_hdf5(object = nn_model, filepath = "./output/nn_model_09112023.hdf5")
+#saveRDS(object = perf_hist, file = "./output/nn_model_performance_history_09112023.rds")
 
 
 
 # compare model performance ------------------------------------------
 
-rf_model <- readRDS(file = "./output/rf_model_default_01112023.rds")
-xgb_model <- readRDS(file = "./output/xgb_model_default_01112023.rds")
-nn_model <- load_model_hdf5(file = "./output/nn_model_01112023.hdf5")
+rf_model <- readRDS(file = "./output/rf_model_default_09112023.rds")
+xgb_model <- readRDS(file = "./output/xgb_model_default_09112023.rds")
+nn_model <- load_model_hdf5(file = "./output/nn_model_09112023.hdf5")
 
 # rf predictions
 rf_pred_class <- predict(rf_model, newdata = t(betas))
