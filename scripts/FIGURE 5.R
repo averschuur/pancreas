@@ -37,12 +37,12 @@ betas_UMC <- readRDS("./input/betas_UMCU_unfiltered.rds")
 #saveRDS(object = anno_UMC, file = "./output/anno_UMCU.rds")
 
 # open data
-anno_UMC <- readRDS("./output/sample_annotation_umap_purity.rds")
+anno_UMC <- readRDS("./output/anno_UMCU.rds")
 betas_UMC <- readRDS(file = "./input/betas_UMCU_unfiltered.rds")
+betas_UMC <- betas_UMC[, anno_UMC$arrayId]
 
-rf_model <- readRDS(file = "./output/rf_model_default.rds")
-xgb_model <- readRDS(file = "./output/xgb_model_default.rds")
-nn_model <- load_model_hdf5(file = "./output/nn_model.hdf5")
+rf_model <- readRDS(file = "./output/rf_model_default_01112023.rds")
+od_model <- readRDS("./output/outlier_det_model_01112023.rds")
 
 # rf predictions
 rf_pred_class <- predict(rf_model, newdata = t(betas_UMC))
@@ -50,16 +50,27 @@ rf_pred_scores <- predict(rf_model, newdata = t(betas_UMC), type = "prob")
 rf_pred_scores_max <- apply(rf_pred_scores, 1, max)
 rf_pred_class <- apply(rf_pred_scores, 1, function(x) colnames(rf_pred_scores)[which.max(x)]) %>% as.factor
 
-
 # add performance to annotation
 anno_UMC <- anno_UMC %>% 
-  mutate(pred_rf = rf_pred_class,
+  mutate(pred_rf = rf_pred_class, 
          pred_scores_rf = apply(rf_pred_scores, 1, max))
+
+# calculate score entropy
+rf_pred_scores <- rf_pred_scores %>% 
+  mutate(entropy = apply(rf_pred_scores[, 1:7], 1, entropy))
+anno_UMC <- cbind(anno_UMC, rf_pred_scores$entropy)
+colnames(anno_UMC) <- c("arrayId","source","sampleName","arrayType","tumorType","location","winning_class","winning_score","entropy")
+
+#outlier prediction
+anno_UMC <- anno_UMC %>%
+  mutate(od_score = predict(object = od_model, newdata = ., type = "response"), 
+         od_class = ifelse(od_score > 0.5, "pancreas", "outlier"))
+
 
 ### extract classification for seperate samples
 test <- rf_pred_scores %>% 
   as_tibble(rownames = "arrayId") %>% 
-  pivot_longer(cols = -arrayId, names_to = "tumor_type", values_to = "rf_score") %>% 
+  pivot_longer(cols = -c(arrayId,entropy), names_to = "tumor_type", values_to = "rf_score") %>% 
   mutate(rf_score = as.numeric(rf_score))
 
 ### Extract data for UMCU_SPN1 = 205555390010_R06C01
