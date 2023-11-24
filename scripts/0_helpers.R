@@ -9,7 +9,6 @@ branded_colors3 <- c("#ef476f", "#ffd166", "#06d6a0", "#118ab2", "#073b4c")
 
 
 
-
 # detect idats
 detect_idats <- function(dir){
   
@@ -124,5 +123,16 @@ entropy <- function(x, na.rm = TRUE){
   } else {
     e <- -sum(x * log2(x))
   }
+}
+
+to_cooccurrence <- function(vec){
+  n <- length(vec)
+  cmat <- matrix(data = NA, nrow = n, ncol = n)
+  
+  for(i in 1:n){
+    cl <- vec[i]
+    cmat[, i] <- ifelse(vec == cl, 1, 0) 
+  }
+  return(cmat)
 }
 
